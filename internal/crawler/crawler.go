@@ -35,12 +35,12 @@ func (c *HttpCrawler) crawl(url string, depth int) error {
 		return nil
 	}
 
-	resp := c.Fetcher.Fetch(url)
-	if resp.Error != nil {
-		return resp.Error
+	fr := c.Fetcher.Fetch(url)
+	if fr.Error != nil {
+		return fr.Error
 	}
 
-	links, err := parser.ExtractLinks(resp.Response.Body)
+	links, err := parser.ExtractLinks(fr.Response.Body)
 	fmt.Println("Links found on", url, ":", links)
 	if err != nil {
 		return err

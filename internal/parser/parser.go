@@ -37,14 +37,16 @@ func ExtractLinks(body io.ReadCloser) ([]string, error) {
 				continue
 			}
 
-			ok, url := getHref(t)
+			ok, href := getHref(t)
 			if !ok {
 				continue
 			}
 
-			hasProto := strings.Index(url, "http") == 0
+			// Checking that the href is absolute
+			// TODO: Handle relative URLs
+			hasProto := strings.Index(href, "http") == 0
 			if hasProto {
-				links = append(links, url)
+				links = append(links, href)
 			}
 		}
 	}
