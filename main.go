@@ -12,7 +12,4 @@ func main() {
 	fetcher := fetcher.NewHttpFetcher(client)
 	crawler := crawler.NewHttpCrawler(fetcher)
 	crawler.Crawl("https://web-scraping.dev/", 2)
-
-	// Output:
-	
 }
