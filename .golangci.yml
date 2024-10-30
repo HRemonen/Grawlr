@@ -1,0 +1,54 @@
+linters-settings:
+  funlen:
+    lines: 60
+    statements: 40
+  gocyclo:
+    min-complexity: 30
+  misspell:
+    locale: US
+  nolintlint:
+    allow-unused: false # report any unused nolint directives
+    require-explanation: true # require an explanation for nolint directives
+    require-specific: false # don't require nolint directives to be specific about which linter is being skipped
+  gocritic:
+    enable-all: true
+    disabled-checks:
+      - ifElseChain
+
+linters:
+  disable-all: true
+  enable:
+    - bodyclose
+    - dogsled
+    - dupl
+    - errcheck
+    - funlen
+    - gocritic
+    - goconst
+    - gocyclo
+    - gofumpt
+    - rowserrcheck
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - misspell
+    - nakedret
+    - noctx
+    - nolintlint
+    - staticcheck
+    - stylecheck
+    - sqlclosecheck
+    - typecheck
+    - unconvert
+    - whitespace
+
+issues:
+  # enable issues excluded by default
+  exclude-use-default: false
+  exclude-rules:
+    - path: (.+)_test.go
+      linters:
+        - funlen
+        - goconst
