@@ -7,6 +7,7 @@ import (
 	"golang.org/x/net/html"
 )
 
+// LinkParser is a parser that extracts links from a web.Response.
 type LinkParser struct {
 	Response web.Response
 }
@@ -18,7 +19,7 @@ func NewLinkParser(r web.Response) *LinkParser {
 	}
 }
 
-// ExtractLinks takes an io.Reader and returns a slice of strings containing
+// Parse returns a slice of strings containing
 // the absolute URLs found in the document.
 func (p *LinkParser) Parse() ([]string, error) {
 	links := []string{}

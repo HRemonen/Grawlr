@@ -1,3 +1,6 @@
+/*
+Package web provides types for internal Response objects.
+*/
 package web
 
 import (

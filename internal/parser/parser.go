@@ -13,6 +13,7 @@ Example:
 */
 package parser
 
+// Parser is an interface that defines the behavior of a parser.
 type Parser interface {
 	Parse() ([]string, error)
 }
