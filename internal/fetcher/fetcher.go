@@ -41,10 +41,14 @@ type Fetcher interface {
 
 // HTTPFetcher is a Fetcher that uses an http.Client to fetch web pages.
 type HTTPFetcher struct {
-	Client       *http.Client
+	// Client is the http.Client used to fetch web pages.
+	Client *http.Client
+	// ignoreRobots is a flag that determines whether robots.txt should be ignored.
 	ignoreRobots bool
-	robotsMap    map[string]*robotstxt.RobotsData
-	lock         *sync.Mutex
+	// robotsMap is a map of hostnames to robotstxt.RobotsData, which is used to cache robots.txt files.
+	robotsMap map[string]*robotstxt.RobotsData
+	// lock is a mutex used to synchronize access to the robotsMap.
+	lock *sync.RWMutex
 }
 
 // NewHTTPFetcher creates a new HTTPFetcher with the given http.Client.
@@ -53,7 +57,7 @@ func NewHTTPFetcher(client *http.Client) *HTTPFetcher {
 		Client:       client,
 		ignoreRobots: false,
 		robotsMap:    make(map[string]*robotstxt.RobotsData),
-		lock:         &sync.Mutex{},
+		lock:         &sync.RWMutex{},
 	}
 }
 
