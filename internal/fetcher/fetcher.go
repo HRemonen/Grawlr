@@ -9,24 +9,31 @@ Example:
 	f := fetcher.NewHTTPFetcher(&http.Client{
 		Timeout: time.Second * 10,
 	})
-	resp := fetcher.Fetch("https://example.com/")
+	resp := f.Fetch("https://example.com/")
 	if resp.Error != nil {
 		log.Fatal(resp.Error)
 	}
 */
 package fetcher
 
-import "net/http"
+import (
+	"context"
+	"io"
+	"net/http"
+)
 
 // Fetcher is an interface that defines the behavior of a web page fetcher.
 type Fetcher interface {
-	Fetch(url string) Response
+	Fetch(url string) (Response, error)
 }
 
-// Response is a custom response object that contains an error and an http.Response.
+// Response is a representation of the response from a Fetcher.
 type Response struct {
-	Error    error
-	Response *http.Response
+	StatusCode int
+	Body       io.ReadCloser
+	Ctx        *context.Context
+	Request    *http.Request
+	Headers    *http.Header
 }
 
 // HTTPFetcher is a Fetcher that uses an http.Client to fetch web pages.
@@ -42,18 +49,24 @@ func NewHTTPFetcher(client *http.Client) *HTTPFetcher {
 }
 
 // Fetch fetches the web page at the given URL and return a custom Response object.
-func (f *HTTPFetcher) Fetch(url string) Response {
-	resp, err := f.Client.Get(url)
+func (f *HTTPFetcher) Fetch(url string) (Response, error) {
+	ctx := context.Background()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
-		return Response{
-			Response: nil,
-			Error:    err,
-		}
+		return Response{}, err
 	}
 
-	defer resp.Body.Close()
-	return Response{
-		Response: resp,
-		Error:    nil,
+	resp, err := f.Client.Do(req)
+	if err != nil {
+		return Response{}, err
 	}
+
+	return Response{
+		StatusCode: resp.StatusCode,
+		Body:       resp.Body,
+		Ctx:        &ctx,
+		Request:    req,
+		Headers:    &resp.Header,
+	}, nil
 }
