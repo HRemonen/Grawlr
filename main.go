@@ -17,7 +17,7 @@ func main() {
 	p := []parser.Parser{}
 	c := crawler.NewHTTPCrawler(f, p)
 
-	err := c.Crawl("https://web-scraping.dev/", 2)
+	err := c.Crawl("https://hremonen.com", 10)
 	if err != nil {
 		panic(err)
 	}

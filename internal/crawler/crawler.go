@@ -80,14 +80,14 @@ func (c *HTTPCrawler) crawl(url string, depth int) error {
 	// Use the dedicated LinkParser to extract links for further crawling
 	links, err := c.LinkParser.Parse(res)
 	if err != nil {
-		return err
+		log.Printf("Error parsing links on %s: %v", url, err)
 	}
 	log.Println("Links found on", url, ":", links)
 
 	// Recursively crawl each discovered link
 	for _, link := range links {
 		if err := c.crawl(link, depth-1); err != nil {
-			return err
+			log.Printf("Error crawling %s: %v", link, err)
 		}
 	}
 
