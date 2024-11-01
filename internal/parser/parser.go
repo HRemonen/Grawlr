@@ -1,3 +1,16 @@
+/*
+Package parser provides a function to extract links from an HTML document.
+
+The ExtractLinks function takes an io.ReadCloser and returns a slice of strings
+containing the absolute URLs found in the document.
+
+Example:
+
+	links, err := parser.ExtractLinks(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+*/
 package parser
 
 import (
@@ -7,7 +20,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-func getHref(t html.Token) (bool, string) {
+func getHref(t html.Token) (ok bool, href string) {
 	for _, a := range t.Attr {
 		if a.Key == "href" {
 			return true, a.Val
@@ -18,8 +31,6 @@ func getHref(t html.Token) (bool, string) {
 }
 
 func ExtractLinks(body io.ReadCloser) ([]string, error) {
-	defer body.Close()
-
 	links := []string{}
 	tokenizer := html.NewTokenizer(body)
 

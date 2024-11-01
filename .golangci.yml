@@ -28,6 +28,7 @@ linters:
     - gocyclo
     - gofumpt
     - rowserrcheck
+    - revive
     - goprintffuncname
     - gosec
     - gosimple

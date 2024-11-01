@@ -1,3 +1,19 @@
+/*
+Package fetcher provides a simple interface for fetching web pages.
+
+The Fetcher interface defines the behavior of a web page fetcher. The HttpFetcher
+type implements the Fetcher interface using an http.Client to fetch web pages.
+
+Example:
+
+	f := fetcher.NewHTTPFetcher(&http.Client{
+		Timeout: time.Second * 10,
+	})
+	resp := fetcher.Fetch("https://example.com/")
+	if resp.Error != nil {
+		log.Fatal(resp.Error)
+	}
+*/
 package fetcher
 
 import "net/http"
@@ -13,20 +29,20 @@ type Response struct {
 	Response *http.Response
 }
 
-// HttpFetcher is a Fetcher that uses an http.Client to fetch web pages.
-type HttpFetcher struct {
+// HTTPFetcher is a Fetcher that uses an http.Client to fetch web pages.
+type HTTPFetcher struct {
 	Client *http.Client
 }
 
-// NewHttpFetcher creates a new HttpFetcher with the given http.Client.
-func NewHttpFetcher(client *http.Client) *HttpFetcher {
-	return &HttpFetcher{
+// NewHTTPFetcher creates a new HTTPFetcher with the given http.Client.
+func NewHTTPFetcher(client *http.Client) *HTTPFetcher {
+	return &HTTPFetcher{
 		Client: client,
 	}
 }
 
 // Fetch fetches the web page at the given URL and return a custom Response object.
-func (f *HttpFetcher) Fetch(url string) Response {
+func (f *HTTPFetcher) Fetch(url string) Response {
 	resp, err := f.Client.Get(url)
 	if err != nil {
 		return Response{
@@ -35,6 +51,7 @@ func (f *HttpFetcher) Fetch(url string) Response {
 		}
 	}
 
+	defer resp.Body.Close()
 	return Response{
 		Response: resp,
 		Error:    nil,

@@ -1,3 +1,21 @@
+/*
+Package crawler provides a web crawler that can be used to crawl web pages.
+
+The Crawler interface defines the behavior of a web crawler. The HTTPCrawler
+type implements the Crawler interface using a Fetcher to fetch web pages.
+
+Example:
+
+	f := fetcher.NewHTTPFetcher(&http.Client{
+		Timeout: time.Second * 10,
+	})
+	c := crawler.NewHTTPCrawler(f)
+
+	err := c.Crawl("https://example.com/", 2)
+	if err != nil {
+		panic(err)
+	}
+*/
 package crawler
 
 import (
@@ -12,25 +30,25 @@ type Crawler interface {
 	Crawl(url string, depth int) error
 }
 
-// HttpCrawler is a web crawler that uses a Fetcher to fetch web pages.
-type HttpCrawler struct {
+// HTTPCrawler is a web crawler that uses a Fetcher to fetch web pages.
+type HTTPCrawler struct {
 	Fetcher fetcher.Fetcher
 }
 
-// NewHttpCrawler creates a new HttpCrawler with the given Fetcher.
-func NewHttpCrawler(fetcher fetcher.Fetcher) *HttpCrawler {
-	return &HttpCrawler{
-		Fetcher: fetcher,
+// NewHTTPCrawler creates a new HTTPCrawler with the given Fetcher.
+func NewHTTPCrawler(f fetcher.Fetcher) *HTTPCrawler {
+	return &HTTPCrawler{
+		Fetcher: f,
 	}
 }
 
 // Crawl fetches the web page at the given URL and recursively crawls the pages
 // linked from the page up to the given depth.
-func (c *HttpCrawler) Crawl(url string, depth int) error {
+func (c *HTTPCrawler) Crawl(url string, depth int) error {
 	return c.crawl(url, depth)
 }
 
-func (c *HttpCrawler) crawl(url string, depth int) error {
+func (c *HTTPCrawler) crawl(url string, depth int) error {
 	if depth == 0 {
 		return nil
 	}
