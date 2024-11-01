@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"log"
 	"net/http"
 )
 
@@ -63,7 +64,11 @@ func (f *HTTPFetcher) Fetch(url string) (Response, error) {
 		return Response{}, err
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("error closing response body: %v for request of: %v", err, req.URL)
+		}
+	}()
 
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
