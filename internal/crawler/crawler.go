@@ -38,12 +38,12 @@ type HTTPCrawler struct {
 }
 
 // NewHTTPCrawler creates a new HTTPCrawler with the given Fetcher, Parsers, and LinkParser.
-func NewHTTPCrawler(fetcher fetcher.Fetcher, parsers []parser.Parser) *HTTPCrawler {
+func NewHTTPCrawler(f fetcher.Fetcher, p []parser.Parser) *HTTPCrawler {
 	linkParser := parser.NewLinkParser()
 
 	return &HTTPCrawler{
-		Fetcher:    fetcher,
-		Parsers:    parsers,
+		Fetcher:    f,
+		Parsers:    p,
 		LinkParser: linkParser,
 	}
 }
