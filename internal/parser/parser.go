@@ -30,6 +30,8 @@ func getHref(t html.Token) (ok bool, href string) {
 	return false, ""
 }
 
+// ExtractLinks takes an io.ReadCloser and returns a slice of strings containing
+// the absolute URLs found in the document.
 func ExtractLinks(body io.ReadCloser) ([]string, error) {
 	links := []string{}
 	tokenizer := html.NewTokenizer(body)
