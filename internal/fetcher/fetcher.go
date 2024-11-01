@@ -17,6 +17,7 @@ Example:
 package fetcher
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"net/http"
@@ -30,7 +31,7 @@ type Fetcher interface {
 // Response is a representation of the response from a Fetcher.
 type Response struct {
 	StatusCode int
-	Body       io.ReadCloser
+	Body       io.Reader
 	Ctx        *context.Context
 	Request    *http.Request
 	Headers    *http.Header
@@ -62,9 +63,18 @@ func (f *HTTPFetcher) Fetch(url string) (Response, error) {
 		return Response{}, err
 	}
 
+	defer resp.Body.Close()
+
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return Response{}, err
+	}
+
+	body := bytes.NewReader(b)
+
 	return Response{
 		StatusCode: resp.StatusCode,
-		Body:       resp.Body,
+		Body:       body,
 		Ctx:        &ctx,
 		Request:    req,
 		Headers:    &resp.Header,
