@@ -8,22 +8,18 @@ import (
 )
 
 // LinkParser is a parser that extracts links from a web.Response.
-type LinkParser struct {
-	Response web.Response
-}
+type LinkParser struct{}
 
 // NewLinkParser creates a new LinkParser with the given Response.
-func NewLinkParser(r web.Response) *LinkParser {
-	return &LinkParser{
-		Response: r,
-	}
+func NewLinkParser() *LinkParser {
+	return &LinkParser{}
 }
 
 // Parse returns a slice of strings containing
 // the absolute URLs found in the document.
-func (p *LinkParser) Parse() ([]string, error) {
+func (p *LinkParser) Parse(content web.Response) ([]string, error) {
 	links := []string{}
-	tokenizer := html.NewTokenizer(p.Response.Body)
+	tokenizer := html.NewTokenizer(content.Body)
 
 	for {
 		tt := tokenizer.Next()

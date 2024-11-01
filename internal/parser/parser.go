@@ -1,19 +1,11 @@
 /*
-Package parser provides a function to extract links from an HTML document.
-
-The ExtractLinks function takes an io.ReadCloser and returns a slice of strings
-containing the absolute URLs found in the document.
-
-Example:
-
-	links, err := parser.ExtractLinks(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
+Package parser provides a simple interface for parsing web pages.
 */
 package parser
 
+import "github.com/HRemonen/Grawlr/internal/web"
+
 // Parser is an interface that defines the behavior of a parser.
 type Parser interface {
-	Parse() ([]string, error)
+	Parse(content web.Response) ([]string, error)
 }

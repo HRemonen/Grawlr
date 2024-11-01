@@ -19,7 +19,7 @@ Example:
 package crawler
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/HRemonen/Grawlr/internal/fetcher"
 	"github.com/HRemonen/Grawlr/internal/parser"
@@ -30,15 +30,21 @@ type Crawler interface {
 	Crawl(url string, depth int) error
 }
 
-// HTTPCrawler is a web crawler that uses a Fetcher to fetch web pages.
+// HTTPCrawler is a web crawler that uses a Fetcher to fetch web pages and Parsers to extract information.
 type HTTPCrawler struct {
-	Fetcher fetcher.Fetcher
+	Fetcher    fetcher.Fetcher
+	Parsers    []parser.Parser
+	LinkParser *parser.LinkParser
 }
 
-// NewHTTPCrawler creates a new HTTPCrawler with the given Fetcher.
-func NewHTTPCrawler(f fetcher.Fetcher) *HTTPCrawler {
+// NewHTTPCrawler creates a new HTTPCrawler with the given Fetcher, Parsers, and LinkParser.
+func NewHTTPCrawler(fetcher fetcher.Fetcher, parsers []parser.Parser) *HTTPCrawler {
+	linkParser := parser.NewLinkParser()
+
 	return &HTTPCrawler{
-		Fetcher: f,
+		Fetcher:    fetcher,
+		Parsers:    parsers,
+		LinkParser: linkParser,
 	}
 }
 
@@ -53,20 +59,32 @@ func (c *HTTPCrawler) crawl(url string, depth int) error {
 		return nil
 	}
 
+	// Fetch the page content
 	res, err := c.Fetcher.Fetch(url)
 	if err != nil {
 		return err
 	}
 
-	p := parser.NewLinkParser(res)
-	links, err := p.Parse()
+	log.Println("Crawling", url, "at depth", depth)
 
-	fmt.Println("Links found on", url, ":", links)
+	// Use non-link parsers to extract data from the page
+	for _, parser := range c.Parsers {
+		parsedData, err := parser.Parse(res)
+		if err != nil {
+			log.Printf("Error parsing %s with parser %T: %v", url, parser, err)
+			continue
+		}
+		log.Printf("Data found by %T on %s: %v", parser, url, parsedData)
+	}
+
+	// Use the dedicated LinkParser to extract links for further crawling
+	links, err := c.LinkParser.Parse(res)
 	if err != nil {
 		return err
 	}
+	log.Println("Links found on", url, ":", links)
 
-	fmt.Println("Crawling", url, "at depth", depth)
+	// Recursively crawl each discovered link
 	for _, link := range links {
 		if err := c.crawl(link, depth-1); err != nil {
 			return err
