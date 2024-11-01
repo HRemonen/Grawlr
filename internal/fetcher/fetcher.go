@@ -22,20 +22,13 @@ import (
 	"io"
 	"log"
 	"net/http"
+
+	"github.com/HRemonen/Grawlr/internal/web"
 )
 
 // Fetcher is an interface that defines the behavior of a web page fetcher.
 type Fetcher interface {
-	Fetch(url string) (Response, error)
-}
-
-// Response is a representation of the response from a Fetcher.
-type Response struct {
-	StatusCode int
-	Body       io.Reader
-	Ctx        *context.Context
-	Request    *http.Request
-	Headers    *http.Header
+	Fetch(url string) (web.Response, error)
 }
 
 // HTTPFetcher is a Fetcher that uses an http.Client to fetch web pages.
@@ -51,17 +44,17 @@ func NewHTTPFetcher(client *http.Client) *HTTPFetcher {
 }
 
 // Fetch fetches the web page at the given URL and return a custom Response object.
-func (f *HTTPFetcher) Fetch(url string) (Response, error) {
+func (f *HTTPFetcher) Fetch(url string) (web.Response, error) {
 	ctx := context.Background()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
-		return Response{}, err
+		return web.Response{}, err
 	}
 
 	resp, err := f.Client.Do(req)
 	if err != nil {
-		return Response{}, err
+		return web.Response{}, err
 	}
 
 	defer func() {
@@ -72,12 +65,12 @@ func (f *HTTPFetcher) Fetch(url string) (Response, error) {
 
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return Response{}, err
+		return web.Response{}, err
 	}
 
 	body := bytes.NewReader(b)
 
-	return Response{
+	return web.Response{
 		StatusCode: resp.StatusCode,
 		Body:       body,
 		Ctx:        &ctx,

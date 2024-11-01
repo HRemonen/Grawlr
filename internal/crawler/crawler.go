@@ -58,7 +58,8 @@ func (c *HTTPCrawler) crawl(url string, depth int) error {
 		return err
 	}
 
-	links, err := parser.ExtractLinks(res.Body)
+	p := parser.NewLinkParser(res)
+	links, err := p.Parse()
 
 	fmt.Println("Links found on", url, ":", links)
 	if err != nil {
