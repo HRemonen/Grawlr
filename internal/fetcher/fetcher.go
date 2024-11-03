@@ -39,10 +39,17 @@ type Fetcher interface {
 	Fetch(url string) (web.Response, error)
 }
 
+// FetcherOptions is a type for functional options that can be used to configure a Fetcher.
+type FetcherOptions func(f *HTTPFetcher)
+
 // HTTPFetcher is a Fetcher that uses an http.Client to fetch web pages.
 type HTTPFetcher struct {
 	// Client is the http.Client used to fetch web pages.
 	Client *http.Client
+	// AllowedURLs is a list of URLs that are allowed to be fetched.
+	AllowedURLs []string
+	// DisallowedURLs is a list of URLs that are disallowed to be fetched.
+	DisallowedURLs []string
 	// ignoreRobots is a flag that determines whether robots.txt should be ignored.
 	ignoreRobots bool
 	// robotsMap is a map of hostnames to robotstxt.RobotsData, which is used to cache robots.txt files.
@@ -52,12 +59,39 @@ type HTTPFetcher struct {
 }
 
 // NewHTTPFetcher creates a new HTTPFetcher with the given http.Client.
-func NewHTTPFetcher(client *http.Client) *HTTPFetcher {
-	return &HTTPFetcher{
+func NewHTTPFetcher(client *http.Client, options ...FetcherOptions) *HTTPFetcher {
+	f := &HTTPFetcher{
 		Client:       client,
 		ignoreRobots: false,
 		robotsMap:    make(map[string]*robotstxt.RobotsData),
 		lock:         &sync.RWMutex{},
+	}
+
+	for _, option := range options {
+		option(f)
+	}
+
+	return f
+}
+
+// WithAllowedURLs is a functional option that sets the allowed URLs for the HTTPFetcher.
+func WithAllowedURLs(urls []string) FetcherOptions {
+	return func(f *HTTPFetcher) {
+		f.AllowedURLs = urls
+	}
+}
+
+// WithDisallowedURLs is a functional option that sets the disallowed URLs for the HTTPFetcher.
+func WithDisallowedURLs(urls []string) FetcherOptions {
+	return func(f *HTTPFetcher) {
+		f.DisallowedURLs = urls
+	}
+}
+
+// WithIgnoreRobots is a functional option that sets the ignoreRobots flag for the HTTPFetcher.
+func WithIgnoreRobots(ignore bool) FetcherOptions {
+	return func(f *HTTPFetcher) {
+		f.ignoreRobots = ignore
 	}
 }
 
