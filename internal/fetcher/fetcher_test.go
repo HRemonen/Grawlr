@@ -131,7 +131,7 @@ func newTestFetcher() *Fetcher {
 	})
 }
 
-func TestHTTPFetcher_FetchHomePage(t *testing.T) {
+func TestFetcher_FetchHomePage(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
@@ -145,7 +145,7 @@ func TestHTTPFetcher_FetchHomePage(t *testing.T) {
 	assert.Equal(t, "Hello, client\n", string(body))
 }
 
-func TestHTTPFetcher_FetchRedirect(t *testing.T) {
+func TestFetcher_FetchRedirect(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
@@ -156,7 +156,7 @@ func TestHTTPFetcher_FetchRedirect(t *testing.T) {
 	assert.Equal(t, "/", resp.Headers.Get("Location"))
 }
 
-func TestHTTPFetcher_FetchErrorPage(t *testing.T) {
+func TestFetcher_FetchErrorPage(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
@@ -170,7 +170,7 @@ func TestHTTPFetcher_FetchErrorPage(t *testing.T) {
 	assert.Contains(t, string(body), "Internal server error")
 }
 
-func TestHTTPFetcher_FetchNotFoundPage(t *testing.T) {
+func TestFetcher_FetchNotFoundPage(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
@@ -180,7 +180,7 @@ func TestHTTPFetcher_FetchNotFoundPage(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
 
-func TestHTTPFetcher_FetchWithRobotsAllowed(t *testing.T) {
+func TestFetcher_FetchWithRobotsAllowed(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
@@ -194,7 +194,7 @@ func TestHTTPFetcher_FetchWithRobotsAllowed(t *testing.T) {
 	assert.Equal(t, "Allowed", string(body))
 }
 
-func TestHTTPFetcher_FetchWithRobotsDisallowed(t *testing.T) {
+func TestFetcher_FetchWithRobotsDisallowed(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
@@ -203,7 +203,7 @@ func TestHTTPFetcher_FetchWithRobotsDisallowed(t *testing.T) {
 	assert.ErrorIs(t, err, ErrRobotsDisallowed)
 }
 
-func TestHTTPFetcher_FetchRobotsTxt(t *testing.T) {
+func TestFetcher_FetchRobotsTxt(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
@@ -217,7 +217,7 @@ func TestHTTPFetcher_FetchRobotsTxt(t *testing.T) {
 	assert.Contains(t, string(body), "User-agent: *\nDisallow: /disallowed")
 }
 
-func TestHTTPFetcher_FetchFAQPage(t *testing.T) {
+func TestFetcher_FetchFAQPage(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
@@ -236,7 +236,7 @@ func TestHTTPFetcher_FetchFAQPage(t *testing.T) {
 	assert.Contains(t, content, `<a href="https://external.com/resource">External Resource</a>`)
 }
 
-func TestHTTPFetcher_FetchRelativeLinksPage(t *testing.T) {
+func TestFetcher_FetchRelativeLinksPage(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
@@ -254,7 +254,7 @@ func TestHTTPFetcher_FetchRelativeLinksPage(t *testing.T) {
 	assert.Contains(t, content, `<a href="./page3">Page 3</a>`)
 }
 
-func TestHTTPFetcher_FetchComplexWhitespacePage(t *testing.T) {
+func TestFetcher_FetchComplexWhitespacePage(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
