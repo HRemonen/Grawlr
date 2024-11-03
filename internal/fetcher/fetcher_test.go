@@ -122,8 +122,8 @@ func newTestServer() *httptest.Server {
 	return server
 }
 
-func newTestFetcher() *HTTPFetcher {
-	return NewHTTPFetcher(&http.Client{
+func newTestFetcher() *Fetcher {
+	return NewFetcher(&http.Client{
 		Timeout: time.Second * 10,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse

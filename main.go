@@ -1,4 +1,4 @@
-// Main file for the Grawlr application.
+// This file creates a new Fetcher and Crawler and starts the crawling process.
 package main
 
 import (
@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	f := fetcher.NewHTTPFetcher(&http.Client{
+	f := fetcher.NewFetcher(&http.Client{
 		Timeout: time.Second * 10,
 	})
 	p := []parser.Parser{}

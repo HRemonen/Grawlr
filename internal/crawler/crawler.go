@@ -32,13 +32,13 @@ type Crawler interface {
 
 // HTTPCrawler is a web crawler that uses a Fetcher to fetch web pages and Parsers to extract information.
 type HTTPCrawler struct {
-	Fetcher    fetcher.Fetcher
+	Fetcher    *fetcher.Fetcher
 	Parsers    []parser.Parser
 	LinkParser *parser.LinkParser
 }
 
 // NewHTTPCrawler creates a new HTTPCrawler with the given Fetcher, Parsers, and LinkParser.
-func NewHTTPCrawler(f fetcher.Fetcher, p []parser.Parser) *HTTPCrawler {
+func NewHTTPCrawler(f *fetcher.Fetcher, p []parser.Parser) *HTTPCrawler {
 	linkParser := parser.NewLinkParser()
 
 	return &HTTPCrawler{

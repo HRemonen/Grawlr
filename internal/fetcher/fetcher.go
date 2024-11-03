@@ -1,17 +1,18 @@
 /*
-Package fetcher provides a simple interface for fetching web pages.
+Package fetcher provides a Fetcher that can be used to fetch web pages.
 
-The Fetcher interface defines the behavior of a web page fetcher. The HttpFetcher
-type implements the Fetcher interface using an http.Client to fetch web pages.
+The Fetcher type uses an http.Client to fetch web pages and can be configured
+with allowed and disallowed URLs as well as an option to ignore robots.txt.
 
 Example:
 
-	f := fetcher.NewHTTPFetcher(&http.Client{
+	f := fetcher.NewFetcher(&http.Client{
 		Timeout: time.Second * 10,
-	})
-	resp := f.Fetch("https://example.com/")
-	if resp.Error != nil {
-		log.Fatal(resp.Error)
+	}, fetcher.WithIgnoreRobots(true))
+
+	resp, err := f.Fetch("https://example.com/")
+	if err != nil {
+		log.Fatal(err)
 	}
 */
 package fetcher
@@ -34,16 +35,11 @@ import (
 // ErrRobotsDisallowed is returned when a URL is disallowed by robots.txt.
 var ErrRobotsDisallowed = errors.New("URL is disallowed by robots.txt")
 
-// Fetcher is an interface that defines the behavior of a web page fetcher.
-type Fetcher interface {
-	Fetch(url string) (web.Response, error)
-}
-
 // Options is a type for functional options that can be used to configure a Fetcher.
-type Options func(f *HTTPFetcher)
+type Options func(f *Fetcher)
 
-// HTTPFetcher is a Fetcher that uses an http.Client to fetch web pages.
-type HTTPFetcher struct {
+// Fetcher is a Fetcher that uses an http.Client to fetch web pages.
+type Fetcher struct {
 	// Client is the http.Client used to fetch web pages.
 	Client *http.Client
 	// AllowedURLs is a list of URLs that are allowed to be fetched.
@@ -58,9 +54,9 @@ type HTTPFetcher struct {
 	lock *sync.RWMutex
 }
 
-// NewHTTPFetcher creates a new HTTPFetcher with the given http.Client.
-func NewHTTPFetcher(client *http.Client, options ...Options) *HTTPFetcher {
-	f := &HTTPFetcher{
+// NewFetcher creates a new Fetcher with the given http.Client.
+func NewFetcher(client *http.Client, options ...Options) *Fetcher {
+	f := &Fetcher{
 		Client:       client,
 		ignoreRobots: false,
 		robotsMap:    make(map[string]*robotstxt.RobotsData),
@@ -74,29 +70,29 @@ func NewHTTPFetcher(client *http.Client, options ...Options) *HTTPFetcher {
 	return f
 }
 
-// WithAllowedURLs is a functional option that sets the allowed URLs for the HTTPFetcher.
+// WithAllowedURLs is a functional option that sets the allowed URLs for the Fetcher.
 func WithAllowedURLs(urls []string) Options {
-	return func(f *HTTPFetcher) {
+	return func(f *Fetcher) {
 		f.AllowedURLs = urls
 	}
 }
 
-// WithDisallowedURLs is a functional option that sets the disallowed URLs for the HTTPFetcher.
+// WithDisallowedURLs is a functional option that sets the disallowed URLs for the Fetcher.
 func WithDisallowedURLs(urls []string) Options {
-	return func(f *HTTPFetcher) {
+	return func(f *Fetcher) {
 		f.DisallowedURLs = urls
 	}
 }
 
-// WithIgnoreRobots is a functional option that sets the ignoreRobots flag for the HTTPFetcher.
+// WithIgnoreRobots is a functional option that sets the ignoreRobots flag for the Fetcher.
 func WithIgnoreRobots(ignore bool) Options {
-	return func(f *HTTPFetcher) {
+	return func(f *Fetcher) {
 		f.ignoreRobots = ignore
 	}
 }
 
 // Fetch fetches the web page at the given URL and return a custom Response object.
-func (f *HTTPFetcher) Fetch(u string) (web.Response, error) {
+func (f *Fetcher) Fetch(u string) (web.Response, error) {
 	ctx := context.Background()
 
 	if err := f.checkRobots(u); err != nil {
@@ -135,7 +131,7 @@ func (f *HTTPFetcher) Fetch(u string) (web.Response, error) {
 	}, nil
 }
 
-func (f *HTTPFetcher) checkRobots(u string) error {
+func (f *Fetcher) checkRobots(u string) error {
 	if f.ignoreRobots {
 		return nil
 	}
