@@ -62,6 +62,8 @@ type Fetcher struct {
 func NewFetcher(client *http.Client, options ...Options) *Fetcher {
 	f := &Fetcher{
 		Client:       client,
+		AllowedURLs:  []string{},
+		DisallowedURLs: []string{},
 		ignoreRobots: false,
 		robotsMap:    make(map[string]*robotstxt.RobotsData),
 		lock:         &sync.RWMutex{},

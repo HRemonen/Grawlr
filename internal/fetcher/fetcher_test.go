@@ -122,14 +122,15 @@ func newTestServer() *httptest.Server {
 	return server
 }
 
-func newTestFetcher() *Fetcher {
+func newTestFetcher(options ...Options) *Fetcher {
 	return NewFetcher(&http.Client{
 		Timeout: time.Second * 10,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
-	})
-}
+	}, 
+	options...,
+)}
 
 func TestFetcher_FetchHomePage(t *testing.T) {
 	server := newTestServer()
@@ -269,4 +270,50 @@ func TestFetcher_FetchComplexWhitespacePage(t *testing.T) {
 
 	assert.Contains(t, content, `<h1>Complex Whitespace Page</h1>`)
 	assert.Contains(t, content, `<a href="/spaced_link">Spaced Link</a>`)
+}
+
+
+func TestFetcher_AllowedURLs(t *testing.T) {
+	server := newTestServer()
+	defer server.Close()
+
+	allowed := []string{
+		server.URL + "/allowed",
+		server.URL + "/faq",
+	}
+
+	f := newTestFetcher(WithAllowedURLs(allowed))
+
+	resp, err := f.Request(server.URL + "/allowed")
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	resp, err = f.Request(server.URL + "/faq")
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	_, err = f.Request(server.URL + "/")
+	assert.ErrorIs(t, err, ErrForbiddenURL)
+}
+
+func TestFetcher_DisallowedURLs(t *testing.T) {
+	server := newTestServer()
+	defer server.Close()
+
+	disallowed := []string{
+		server.URL + "/allowed",
+		server.URL + "/faq",
+	}
+
+	f := newTestFetcher(WithDisallowedURLs(disallowed))
+
+	_, err := f.Request(server.URL + "/allowed")
+	assert.ErrorIs(t, err, ErrForbiddenURL)
+
+	_, err = f.Request(server.URL + "/faq")
+	assert.ErrorIs(t, err, ErrForbiddenURL)
+
+	resp, err := f.Request(server.URL + "/")
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
