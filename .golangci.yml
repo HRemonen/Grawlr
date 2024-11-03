@@ -51,5 +51,12 @@ issues:
   exclude-rules:
     - path: (.+)_test.go
       linters:
-        - funlen
+        - gochecknoglobals
         - goconst
+        - gocognit
+        - gocritic
+        - godox
+        - revive
+        - funlen
+        - errcheck
+        - gosec

@@ -156,7 +156,7 @@ func (f *HTTPFetcher) checkRobots(u string) error {
 			return err
 		}
 
-		defer resp.Body.Close()
+		defer resp.Body.Close() //nolint: errcheck
 
 		robot, err = robotstxt.FromResponse(resp)
 		if err != nil {
