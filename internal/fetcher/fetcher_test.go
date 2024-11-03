@@ -24,7 +24,7 @@ func newUnstartedTestServer() *httptest.Server {
 	})
 
 	mux.HandleFunc("/error", func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	})
 
 	mux.Handle("/404", http.NotFoundHandler())
@@ -125,6 +125,9 @@ func newTestServer() *httptest.Server {
 func newTestFetcher() *HTTPFetcher {
 	return NewHTTPFetcher(&http.Client{
 		Timeout: time.Second * 10,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	})
 }
 
@@ -140,4 +143,130 @@ func TestHTTPFetcher_FetchHomePage(t *testing.T) {
 	body, err := io.ReadAll(resp.Body)
 	assert.NoError(t, err)
 	assert.Equal(t, "Hello, client\n", string(body))
+}
+
+func TestHTTPFetcher_FetchRedirect(t *testing.T) {
+	server := newTestServer()
+	defer server.Close()
+
+	f := newTestFetcher()
+	resp, err := f.Fetch(server.URL + "/redirect")
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
+	assert.Equal(t, "/", resp.Headers.Get("Location"))
+}
+
+func TestHTTPFetcher_FetchErrorPage(t *testing.T) {
+	server := newTestServer()
+	defer server.Close()
+
+	f := newTestFetcher()
+	resp, err := f.Fetch(server.URL + "/error")
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+
+	body, err := io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+	assert.Contains(t, string(body), "Internal server error")
+}
+
+func TestHTTPFetcher_FetchNotFoundPage(t *testing.T) {
+	server := newTestServer()
+	defer server.Close()
+
+	f := newTestFetcher()
+	resp, err := f.Fetch(server.URL + "/404")
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+}
+
+func TestHTTPFetcher_FetchWithRobotsAllowed(t *testing.T) {
+	server := newTestServer()
+	defer server.Close()
+
+	f := newTestFetcher()
+	resp, err := f.Fetch(server.URL + "/allowed")
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	body, err := io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+	assert.Equal(t, "Allowed", string(body))
+}
+
+func TestHTTPFetcher_FetchWithRobotsDisallowed(t *testing.T) {
+	server := newTestServer()
+	defer server.Close()
+
+	f := newTestFetcher()
+	_, err := f.Fetch(server.URL + "/disallowed")
+	assert.ErrorIs(t, err, ErrRobotsDisallowed)
+}
+
+func TestHTTPFetcher_FetchRobotsTxt(t *testing.T) {
+	server := newTestServer()
+	defer server.Close()
+
+	f := newTestFetcher()
+	resp, err := f.Fetch(server.URL + "/robots.txt")
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	body, err := io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+	assert.Contains(t, string(body), "User-agent: *\nDisallow: /disallowed")
+}
+
+func TestHTTPFetcher_FetchFAQPage(t *testing.T) {
+	server := newTestServer()
+	defer server.Close()
+
+	f := newTestFetcher()
+	resp, err := f.Fetch(server.URL + "/faq")
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	body, err := io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+	content := string(body)
+
+	assert.Contains(t, content, `<h1>Frequently Asked Questions</h1>`)
+	assert.Contains(t, content, `<a href="/">Home</a>`)
+	assert.Contains(t, content, `<a href="/about">About Us</a>`)
+	assert.Contains(t, content, `<a href="https://external.com/resource">External Resource</a>`)
+}
+
+func TestHTTPFetcher_FetchRelativeLinksPage(t *testing.T) {
+	server := newTestServer()
+	defer server.Close()
+
+	f := newTestFetcher()
+	resp, err := f.Fetch(server.URL + "/relative_links")
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	body, err := io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+	content := string(body)
+
+	assert.Contains(t, content, `<a href="/page1">Page 1</a>`)
+	assert.Contains(t, content, `<a href="../page2">Page 2</a>`)
+	assert.Contains(t, content, `<a href="./page3">Page 3</a>`)
+}
+
+func TestHTTPFetcher_FetchComplexWhitespacePage(t *testing.T) {
+	server := newTestServer()
+	defer server.Close()
+
+	f := newTestFetcher()
+	resp, err := f.Fetch(server.URL + "/complex_whitespace")
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	body, err := io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+	content := string(body)
+
+	assert.Contains(t, content, `<h1>Complex Whitespace Page</h1>`)
+	assert.Contains(t, content, `<a href="/spaced_link">Spaced Link</a>`)
 }
