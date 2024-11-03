@@ -63,9 +63,9 @@ type Fetcher struct {
 }
 
 // NewFetcher creates a new Fetcher with the given http.Client.
-func NewFetcher(client *http.Client, options ...Options) *Fetcher {
+func NewFetcher(options ...Options) *Fetcher {
 	f := &Fetcher{
-		Client:         client,
+		Client:         http.DefaultClient,
 		AllowedURLs:    []string{},
 		DisallowedURLs: []string{},
 		middlewares:    []Middleware{},
@@ -79,6 +79,13 @@ func NewFetcher(client *http.Client, options ...Options) *Fetcher {
 	}
 
 	return f
+}
+
+// WithClient is a functional option that sets the http.Client for the Fetcher.
+func WithClient(client *http.Client) Options {
+	return func(f *Fetcher) {
+		f.Client = client
+	}
 }
 
 // WithAllowedURLs is a functional option that sets the allowed URLs for the Fetcher.

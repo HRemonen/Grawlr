@@ -3,8 +3,6 @@ package main
 
 import (
 	"log"
-	"net/http"
-	"time"
 
 	"github.com/HRemonen/Grawlr/internal/crawler"
 	"github.com/HRemonen/Grawlr/internal/fetcher"
@@ -19,9 +17,7 @@ func LoggingMiddleware() fetcher.Middleware {
 }
 
 func main() {
-	f := fetcher.NewFetcher(&http.Client{
-		Timeout: time.Second * 10,
-	},
+	f := fetcher.NewFetcher(
 		fetcher.WithMiddlewares(LoggingMiddleware()),
 	)
 	p := []parser.Parser{}

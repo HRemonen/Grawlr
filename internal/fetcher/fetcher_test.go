@@ -123,14 +123,17 @@ func newTestServer() *httptest.Server {
 }
 
 func newTestFetcher(options ...Options) *Fetcher {
-	return NewFetcher(&http.Client{
+	client := &http.Client{
 		Timeout: time.Second * 10,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
-	}, 
-	options...,
-)}
+	}
+
+	return NewFetcher(
+		append(options, WithClient(client))...,
+	)
+}
 
 func TestFetcher_FetchHomePage(t *testing.T) {
 	server := newTestServer()
@@ -271,7 +274,6 @@ func TestFetcher_FetchComplexWhitespacePage(t *testing.T) {
 	assert.Contains(t, content, `<h1>Complex Whitespace Page</h1>`)
 	assert.Contains(t, content, `<a href="/spaced_link">Spaced Link</a>`)
 }
-
 
 func TestFetcher_AllowedURLs(t *testing.T) {
 	server := newTestServer()
