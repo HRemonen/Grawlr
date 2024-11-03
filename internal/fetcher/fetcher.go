@@ -39,8 +39,8 @@ type Fetcher interface {
 	Fetch(url string) (web.Response, error)
 }
 
-// FetcherOptions is a type for functional options that can be used to configure a Fetcher.
-type FetcherOptions func(f *HTTPFetcher)
+// Options is a type for functional options that can be used to configure a Fetcher.
+type Options func(f *HTTPFetcher)
 
 // HTTPFetcher is a Fetcher that uses an http.Client to fetch web pages.
 type HTTPFetcher struct {
@@ -59,7 +59,7 @@ type HTTPFetcher struct {
 }
 
 // NewHTTPFetcher creates a new HTTPFetcher with the given http.Client.
-func NewHTTPFetcher(client *http.Client, options ...FetcherOptions) *HTTPFetcher {
+func NewHTTPFetcher(client *http.Client, options ...Options) *HTTPFetcher {
 	f := &HTTPFetcher{
 		Client:       client,
 		ignoreRobots: false,
@@ -75,35 +75,35 @@ func NewHTTPFetcher(client *http.Client, options ...FetcherOptions) *HTTPFetcher
 }
 
 // WithAllowedURLs is a functional option that sets the allowed URLs for the HTTPFetcher.
-func WithAllowedURLs(urls []string) FetcherOptions {
+func WithAllowedURLs(urls []string) Options {
 	return func(f *HTTPFetcher) {
 		f.AllowedURLs = urls
 	}
 }
 
 // WithDisallowedURLs is a functional option that sets the disallowed URLs for the HTTPFetcher.
-func WithDisallowedURLs(urls []string) FetcherOptions {
+func WithDisallowedURLs(urls []string) Options {
 	return func(f *HTTPFetcher) {
 		f.DisallowedURLs = urls
 	}
 }
 
 // WithIgnoreRobots is a functional option that sets the ignoreRobots flag for the HTTPFetcher.
-func WithIgnoreRobots(ignore bool) FetcherOptions {
+func WithIgnoreRobots(ignore bool) Options {
 	return func(f *HTTPFetcher) {
 		f.ignoreRobots = ignore
 	}
 }
 
 // Fetch fetches the web page at the given URL and return a custom Response object.
-func (f *HTTPFetcher) Fetch(url string) (web.Response, error) {
+func (f *HTTPFetcher) Fetch(u string) (web.Response, error) {
 	ctx := context.Background()
 
-	if err := f.checkRobots(url); err != nil {
+	if err := f.checkRobots(u); err != nil {
 		return web.Response{}, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, http.NoBody)
 	if err != nil {
 		return web.Response{}, err
 	}
@@ -151,12 +151,12 @@ func (f *HTTPFetcher) checkRobots(u string) error {
 
 	if !ok {
 		robotURL := parsedURL.Scheme + "://" + parsedURL.Host + "/robots.txt"
-		resp, err := f.Client.Get(robotURL)
+		resp, err := f.Client.Get(robotURL) //nolint: noctx // we don't need a context here
 		if err != nil {
 			return err
 		}
 
-		defer resp.Body.Close() //nolint: errcheck
+		defer resp.Body.Close() //nolint: errcheck // because we don't care about the error here
 
 		robot, err = robotstxt.FromResponse(resp)
 		if err != nil {
