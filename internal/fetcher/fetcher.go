@@ -42,6 +42,8 @@ var (
 // Options is a type for functional options that can be used to configure a Fetcher.
 type Options func(f *Fetcher)
 
+type Middleware func(req *web.Request)
+
 // Fetcher is a Fetcher that uses an http.Client to fetch web pages.
 type Fetcher struct {
 	// Client is the http.Client used to fetch web pages.
@@ -50,6 +52,8 @@ type Fetcher struct {
 	AllowedURLs []string
 	// DisallowedURLs is a list of URLs that are disallowed to be fetched. Can be set with the WithDisallowedURLs functional option.
 	DisallowedURLs []string
+	// middlewares are an array of functions that are run before the request is made to the site.
+	middlewares []Middleware
 	// ignoreRobots is a flag that determines whether robots.txt should be ignored, defaults to false. Can be set with the WithIgnoreRobots functional option.
 	ignoreRobots bool
 	// robotsMap is a map of hostnames to robotstxt.RobotsData, which is used to cache robots.txt files.
@@ -61,12 +65,13 @@ type Fetcher struct {
 // NewFetcher creates a new Fetcher with the given http.Client.
 func NewFetcher(client *http.Client, options ...Options) *Fetcher {
 	f := &Fetcher{
-		Client:       client,
-		AllowedURLs:  []string{},
+		Client:         client,
+		AllowedURLs:    []string{},
 		DisallowedURLs: []string{},
-		ignoreRobots: false,
-		robotsMap:    make(map[string]*robotstxt.RobotsData),
-		lock:         &sync.RWMutex{},
+		middlewares:    []Middleware{},
+		ignoreRobots:   false,
+		robotsMap:      make(map[string]*robotstxt.RobotsData),
+		lock:           &sync.RWMutex{},
 	}
 
 	for _, option := range options {
@@ -94,6 +99,13 @@ func WithDisallowedURLs(urls []string) Options {
 func WithIgnoreRobots(ignore bool) Options {
 	return func(f *Fetcher) {
 		f.ignoreRobots = ignore
+	}
+}
+
+// WithMiddleware is a functional option that adds a middleware to the Fetcher.
+func WithMiddlewares(middlewares ...Middleware) Options {
+	return func(f *Fetcher) {
+		f.middlewares = append(f.middlewares, middlewares...)
 	}
 }
 
@@ -127,6 +139,18 @@ func (f *Fetcher) scrape(u string) (web.Response, error) {
 }
 
 func (f *Fetcher) fetch(req *http.Request) (web.Response, error) {
+	request := &web.Request{
+		URL:     req.URL,
+		Headers: &req.Header,
+		Host:    req.URL.Host,
+		Method:  req.Method,
+		Body:    req.Body,
+	}
+
+	if err := f.handleMiddlewares(request); err != nil {
+		return web.Response{}, err
+	}
+
 	resp, err := f.Client.Do(req)
 	if err != nil {
 		return web.Response{}, err
@@ -148,9 +172,17 @@ func (f *Fetcher) fetch(req *http.Request) (web.Response, error) {
 	return web.Response{
 		StatusCode: resp.StatusCode,
 		Body:       body,
-		Request:    req,
+		Request:    request,
 		Headers:    &resp.Header,
 	}, nil
+}
+
+func (f *Fetcher) handleMiddlewares(req *web.Request) error {
+	for _, m := range f.middlewares {
+		m(req)
+	}
+
+	return nil
 }
 
 func (f *Fetcher) checkRobots(parsedURL *url.URL) error {

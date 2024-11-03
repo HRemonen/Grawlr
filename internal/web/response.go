@@ -12,6 +12,6 @@ import (
 type Response struct {
 	StatusCode int
 	Body       io.Reader
-	Request    *http.Request
+	Request    *Request
 	Headers    *http.Header
 }

@@ -61,8 +61,6 @@ func (c *Crawler) crawl(url string, depth int) error {
 		return err
 	}
 
-	log.Println("Crawling", url, "at depth", depth)
-
 	// Use non-link parsers to extract data from the page
 	for _, parser := range c.Parsers {
 		parsedData, err := parser.Parse(res)
@@ -78,7 +76,6 @@ func (c *Crawler) crawl(url string, depth int) error {
 	if err != nil {
 		log.Printf("Error parsing links on %s: %v", url, err)
 	}
-	log.Println("Links found on", url, ":", links)
 
 	// Recursively crawl each discovered link
 	for _, link := range links {
