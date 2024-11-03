@@ -38,7 +38,19 @@ Currently, the project does not actually expose any function or interface to use
 
 ## Testing
 
-Testing documentation TBD
+This project includes tests for various different modules.
+
+To run the tests for a single package, use the directory:
+
+```bash
+go test -v ./internal
+```
+
+To run all the tests:
+
+```bash
+go test ./...
+```
 
 ## Linting
 
