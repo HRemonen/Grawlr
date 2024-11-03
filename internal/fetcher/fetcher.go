@@ -10,7 +10,7 @@ Example:
 		Timeout: time.Second * 10,
 	}, fetcher.WithIgnoreRobots(true))
 
-	resp, err := f.Fetch("https://example.com/")
+	resp, err := f.Request("https://example.com/")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -95,8 +95,9 @@ func WithIgnoreRobots(ignore bool) Options {
 	}
 }
 
-// Fetch fetches the web page at the given URL and returns a custom Response object.
-func (f *Fetcher) Fetch(u string) (web.Response, error) {
+// Request requests the web page at the given URL if it is allowed to be fetched.
+// It returns a web.Response with the response data or an error if the request fails.
+func (f *Fetcher) Request(u string) (web.Response, error) {
 	return f.scrape(u)
 }
 
@@ -110,13 +111,13 @@ func (f *Fetcher) scrape(u string) (web.Response, error) {
 		return web.Response{}, err
 	}
 
-	ctx := context.Background()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedURL.String(), http.NoBody)
-	if err != nil {
+	if err := f.checkFilters(parsedURL); err != nil {
 		return web.Response{}, err
 	}
 
-	if err := f.checkFilters(parsedURL); err != nil {
+	ctx := context.Background() // TODO: add functionality to cancel requests
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedURL.String(), http.NoBody)
+	if err != nil {
 		return web.Response{}, err
 	}
 

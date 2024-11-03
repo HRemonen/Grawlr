@@ -56,7 +56,7 @@ func (c *Crawler) crawl(url string, depth int) error {
 	}
 
 	// Fetch the page content
-	res, err := c.Fetcher.Fetch(url)
+	res, err := c.Fetcher.Request(url)
 	if err != nil {
 		return err
 	}

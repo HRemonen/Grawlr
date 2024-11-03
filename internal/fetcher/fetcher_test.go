@@ -136,7 +136,7 @@ func TestHTTPFetcher_FetchHomePage(t *testing.T) {
 	defer server.Close()
 
 	f := newTestFetcher()
-	resp, err := f.Fetch(server.URL + "/")
+	resp, err := f.Request(server.URL + "/")
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -150,7 +150,7 @@ func TestHTTPFetcher_FetchRedirect(t *testing.T) {
 	defer server.Close()
 
 	f := newTestFetcher()
-	resp, err := f.Fetch(server.URL + "/redirect")
+	resp, err := f.Request(server.URL + "/redirect")
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
 	assert.Equal(t, "/", resp.Headers.Get("Location"))
@@ -161,7 +161,7 @@ func TestHTTPFetcher_FetchErrorPage(t *testing.T) {
 	defer server.Close()
 
 	f := newTestFetcher()
-	resp, err := f.Fetch(server.URL + "/error")
+	resp, err := f.Request(server.URL + "/error")
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 
@@ -175,7 +175,7 @@ func TestHTTPFetcher_FetchNotFoundPage(t *testing.T) {
 	defer server.Close()
 
 	f := newTestFetcher()
-	resp, err := f.Fetch(server.URL + "/404")
+	resp, err := f.Request(server.URL + "/404")
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
@@ -185,7 +185,7 @@ func TestHTTPFetcher_FetchWithRobotsAllowed(t *testing.T) {
 	defer server.Close()
 
 	f := newTestFetcher()
-	resp, err := f.Fetch(server.URL + "/allowed")
+	resp, err := f.Request(server.URL + "/allowed")
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -199,7 +199,7 @@ func TestHTTPFetcher_FetchWithRobotsDisallowed(t *testing.T) {
 	defer server.Close()
 
 	f := newTestFetcher()
-	_, err := f.Fetch(server.URL + "/disallowed")
+	_, err := f.Request(server.URL + "/disallowed")
 	assert.ErrorIs(t, err, ErrRobotsDisallowed)
 }
 
@@ -208,7 +208,7 @@ func TestHTTPFetcher_FetchRobotsTxt(t *testing.T) {
 	defer server.Close()
 
 	f := newTestFetcher()
-	resp, err := f.Fetch(server.URL + "/robots.txt")
+	resp, err := f.Request(server.URL + "/robots.txt")
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -222,7 +222,7 @@ func TestHTTPFetcher_FetchFAQPage(t *testing.T) {
 	defer server.Close()
 
 	f := newTestFetcher()
-	resp, err := f.Fetch(server.URL + "/faq")
+	resp, err := f.Request(server.URL + "/faq")
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -241,7 +241,7 @@ func TestHTTPFetcher_FetchRelativeLinksPage(t *testing.T) {
 	defer server.Close()
 
 	f := newTestFetcher()
-	resp, err := f.Fetch(server.URL + "/relative_links")
+	resp, err := f.Request(server.URL + "/relative_links")
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -259,7 +259,7 @@ func TestHTTPFetcher_FetchComplexWhitespacePage(t *testing.T) {
 	defer server.Close()
 
 	f := newTestFetcher()
-	resp, err := f.Fetch(server.URL + "/complex_whitespace")
+	resp, err := f.Request(server.URL + "/complex_whitespace")
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
