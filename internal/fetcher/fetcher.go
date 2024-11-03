@@ -32,8 +32,12 @@ import (
 	"github.com/temoto/robotstxt"
 )
 
-// ErrRobotsDisallowed is returned when a URL is disallowed by robots.txt.
-var ErrRobotsDisallowed = errors.New("URL is disallowed by robots.txt")
+var (
+	// ErrForbiddenURL is returned when a URL is defined in the AllowedURLs setting.
+	ErrForbiddenURL = errors.New("URL is forbidden")
+	// ErrRobotsDisallowed is returned when a URL is disallowed by robots.txt.
+	ErrRobotsDisallowed = errors.New("URL is disallowed by robots.txt")
+)
 
 // Options is a type for functional options that can be used to configure a Fetcher.
 type Options func(f *Fetcher)
@@ -42,11 +46,11 @@ type Options func(f *Fetcher)
 type Fetcher struct {
 	// Client is the http.Client used to fetch web pages.
 	Client *http.Client
-	// AllowedURLs is a list of URLs that are allowed to be fetched.
+	// AllowedURLs is a list of URLs that are allowed to be fetched. Can be set with the WithAllowedURLs functional option.
 	AllowedURLs []string
-	// DisallowedURLs is a list of URLs that are disallowed to be fetched.
+	// DisallowedURLs is a list of URLs that are disallowed to be fetched. Can be set with the WithDisallowedURLs functional option.
 	DisallowedURLs []string
-	// ignoreRobots is a flag that determines whether robots.txt should be ignored.
+	// ignoreRobots is a flag that determines whether robots.txt should be ignored, defaults to false. Can be set with the WithIgnoreRobots functional option.
 	ignoreRobots bool
 	// robotsMap is a map of hostnames to robotstxt.RobotsData, which is used to cache robots.txt files.
 	robotsMap map[string]*robotstxt.RobotsData
@@ -91,19 +95,35 @@ func WithIgnoreRobots(ignore bool) Options {
 	}
 }
 
-// Fetch fetches the web page at the given URL and return a custom Response object.
+// Fetch fetches the web page at the given URL and returns a custom Response object.
 func (f *Fetcher) Fetch(u string) (web.Response, error) {
-	ctx := context.Background()
+	return f.scrape(u)
+}
 
-	if err := f.checkRobots(u); err != nil {
-		return web.Response{}, err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, http.NoBody)
+func (f *Fetcher) scrape(u string) (web.Response, error) {
+	parsedURL, err := url.Parse(u)
 	if err != nil {
 		return web.Response{}, err
 	}
 
+	if err := f.checkRobots(parsedURL); err != nil {
+		return web.Response{}, err
+	}
+
+	ctx := context.Background()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedURL.String(), http.NoBody)
+	if err != nil {
+		return web.Response{}, err
+	}
+
+	if err := f.checkFilters(parsedURL); err != nil {
+		return web.Response{}, err
+	}
+
+	return f.fetch(req)
+}
+
+func (f *Fetcher) fetch(req *http.Request) (web.Response, error) {
 	resp, err := f.Client.Do(req)
 	if err != nil {
 		return web.Response{}, err
@@ -125,20 +145,14 @@ func (f *Fetcher) Fetch(u string) (web.Response, error) {
 	return web.Response{
 		StatusCode: resp.StatusCode,
 		Body:       body,
-		Ctx:        &ctx,
 		Request:    req,
 		Headers:    &resp.Header,
 	}, nil
 }
 
-func (f *Fetcher) checkRobots(u string) error {
+func (f *Fetcher) checkRobots(parsedURL *url.URL) error {
 	if f.ignoreRobots {
 		return nil
-	}
-
-	parsedURL, err := url.Parse(u)
-	if err != nil {
-		return err
 	}
 
 	f.lock.Lock()
@@ -169,4 +183,35 @@ func (f *Fetcher) checkRobots(u string) error {
 	}
 
 	return nil
+}
+
+func (f *Fetcher) checkFilters(parsedURL *url.URL) error {
+	u := parsedURL.String()
+
+	if !f.isURLAllowed(u) {
+		return ErrForbiddenURL
+	}
+
+	return nil
+}
+
+// isURLAllowed checks if the given URL is allowed to be fetched.
+func (f *Fetcher) isURLAllowed(u string) bool {
+	for _, disallowed := range f.DisallowedURLs {
+		if u == disallowed {
+			return false
+		}
+	}
+
+	if len(f.AllowedURLs) == 0 {
+		return true
+	}
+
+	for _, allowed := range f.AllowedURLs {
+		if u == allowed {
+			return true
+		}
+	}
+
+	return false
 }
