@@ -1,19 +1,20 @@
 /*
-Package crawler provides a web crawler that can be used to crawl web pages.
+Package crawler provides a web crawler that uses a Fetcher to fetch web pages and Parsers to extract information.
 
-The Crawler interface defines the behavior of a web crawler. The HTTPCrawler
-type implements the Crawler interface using a Fetcher to fetch web pages.
+The Crawler type can be used to crawl web pages up to a given depth and extract data using Parsers.
 
 Example:
 
-	f := fetcher.NewHTTPFetcher(&http.Client{
+	f := fetcher.NewFetcher(&http.Client{
 		Timeout: time.Second * 10,
 	})
-	c := crawler.NewHTTPCrawler(f)
+	p := []parser.Parser{}
 
-	err := c.Crawl("https://example.com/", 2)
+	c := crawler.NewCrawler(f, p)
+
+	err := c.Crawl("https://example.com/", 10)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 */
 package crawler
@@ -25,23 +26,18 @@ import (
 	"github.com/HRemonen/Grawlr/internal/parser"
 )
 
-// Crawler is an interface that defines the behavior of a web crawler.
-type Crawler interface {
-	Crawl(url string, depth int) error
-}
-
-// HTTPCrawler is a web crawler that uses a Fetcher to fetch web pages and Parsers to extract information.
-type HTTPCrawler struct {
+// Crawler is a web crawler that uses a Fetcher to fetch web pages and Parsers to extract information.
+type Crawler struct {
 	Fetcher    *fetcher.Fetcher
 	Parsers    []parser.Parser
 	LinkParser *parser.LinkParser
 }
 
-// NewHTTPCrawler creates a new HTTPCrawler with the given Fetcher, Parsers, and LinkParser.
-func NewHTTPCrawler(f *fetcher.Fetcher, p []parser.Parser) *HTTPCrawler {
+// NewCrawler creates a new Crawler with the given Fetcher, Parsers, and LinkParser.
+func NewCrawler(f *fetcher.Fetcher, p []parser.Parser) *Crawler {
 	linkParser := parser.NewLinkParser()
 
-	return &HTTPCrawler{
+	return &Crawler{
 		Fetcher:    f,
 		Parsers:    p,
 		LinkParser: linkParser,
@@ -50,11 +46,11 @@ func NewHTTPCrawler(f *fetcher.Fetcher, p []parser.Parser) *HTTPCrawler {
 
 // Crawl fetches the web page at the given URL and recursively crawls the pages
 // linked from the page up to the given depth.
-func (c *HTTPCrawler) Crawl(url string, depth int) error {
+func (c *Crawler) Crawl(url string, depth int) error {
 	return c.crawl(url, depth)
 }
 
-func (c *HTTPCrawler) crawl(url string, depth int) error {
+func (c *Crawler) crawl(url string, depth int) error {
 	if depth == 0 {
 		return nil
 	}

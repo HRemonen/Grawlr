@@ -15,7 +15,7 @@ func main() {
 		Timeout: time.Second * 10,
 	})
 	p := []parser.Parser{}
-	c := crawler.NewHTTPCrawler(f, p)
+	c := crawler.NewCrawler(f, p)
 
 	err := c.Crawl("https://hremonen.com", 10)
 	if err != nil {
