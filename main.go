@@ -4,27 +4,15 @@ package main
 import (
 	"log"
 
-	"github.com/HRemonen/Grawlr/internal/crawler"
-	"github.com/HRemonen/Grawlr/internal/fetcher"
-	"github.com/HRemonen/Grawlr/internal/parser"
-	"github.com/HRemonen/Grawlr/internal/web"
+	"github.com/HRemonen/Grawlr/grawl"
 )
 
-func LoggingMiddleware() fetcher.Middleware {
-	return func(req *web.Request) {
+func LoggingMiddleware() grawl.Middleware {
+	return func(req *grawl.Request) {
 		log.Printf("Requesting URL: %s", req.URL.String())
 	}
 }
 
 func main() {
-	f := fetcher.NewFetcher(
-		fetcher.WithMiddlewares(LoggingMiddleware()),
-	)
-	p := []parser.Parser{}
-	c := crawler.NewCrawler(f, p)
 
-	err := c.Crawl("https://hremonen.com", 10)
-	if err != nil {
-		panic(err)
-	}
 }

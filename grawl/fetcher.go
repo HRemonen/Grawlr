@@ -1,21 +1,19 @@
 /*
-Package fetcher provides a Fetcher that can be used to fetch web pages.
+Copyright 2024 Henri Remonen
 
-The Fetcher type uses an http.Client to fetch web pages and can be configured
-with allowed and disallowed URLs as well as an option to ignore robots.txt.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-Example:
+	http://www.apache.org/licenses/LICENSE-2.0
 
-	f := fetcher.NewFetcher(&http.Client{
-		Timeout: time.Second * 10,
-	}, fetcher.WithIgnoreRobots(true))
-
-	resp, err := f.Request("https://example.com/")
-	if err != nil {
-		log.Fatal(err)
-	}
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
-package fetcher
+package grawl
 
 import (
 	"bytes"
@@ -26,8 +24,6 @@ import (
 	"net/http"
 	"net/url"
 	"sync"
-
-	"github.com/HRemonen/Grawlr/internal/web"
 
 	"github.com/temoto/robotstxt"
 )
@@ -42,7 +38,7 @@ var (
 // Options is a type for functional options that can be used to configure a Fetcher.
 type Options func(f *Fetcher)
 
-type Middleware func(req *web.Request)
+type Middleware func(req *Request)
 
 // Fetcher is a Fetcher that uses an http.Client to fetch web pages.
 type Fetcher struct {
@@ -116,37 +112,37 @@ func WithMiddlewares(middlewares ...Middleware) Options {
 	}
 }
 
-// Request requests the web page at the given URL if it is allowed to be fetched.
-// It returns a web.Response with the response data or an error if the request fails.
-func (f *Fetcher) Request(u string) (web.Response, error) {
+// Visit requests the web page at the given URL if it is allowed to be fetched.
+// It returns a Response with the response data or an error if the request fails.
+func (f *Fetcher) Visit(u string) (Response, error) {
 	return f.scrape(u)
 }
 
-func (f *Fetcher) scrape(u string) (web.Response, error) {
+func (f *Fetcher) scrape(u string) (Response, error) {
 	parsedURL, err := url.Parse(u)
 	if err != nil {
-		return web.Response{}, err
+		return Response{}, err
 	}
 
 	if err := f.checkRobots(parsedURL); err != nil {
-		return web.Response{}, err
+		return Response{}, err
 	}
 
 	if err := f.checkFilters(parsedURL); err != nil {
-		return web.Response{}, err
+		return Response{}, err
 	}
 
 	ctx := context.Background() // TODO: add functionality to cancel requests
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedURL.String(), http.NoBody)
 	if err != nil {
-		return web.Response{}, err
+		return Response{}, err
 	}
 
 	return f.fetch(req)
 }
 
-func (f *Fetcher) fetch(req *http.Request) (web.Response, error) {
-	request := &web.Request{
+func (f *Fetcher) fetch(req *http.Request) (Response, error) {
+	request := &Request{
 		URL:     req.URL,
 		Headers: &req.Header,
 		Host:    req.URL.Host,
@@ -155,12 +151,12 @@ func (f *Fetcher) fetch(req *http.Request) (web.Response, error) {
 	}
 
 	if err := f.handleMiddlewares(request); err != nil {
-		return web.Response{}, err
+		return Response{}, err
 	}
 
 	resp, err := f.Client.Do(req)
 	if err != nil {
-		return web.Response{}, err
+		return Response{}, err
 	}
 
 	defer func() {
@@ -171,12 +167,12 @@ func (f *Fetcher) fetch(req *http.Request) (web.Response, error) {
 
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return web.Response{}, err
+		return Response{}, err
 	}
 
 	body := bytes.NewReader(b)
 
-	return web.Response{
+	return Response{
 		StatusCode: resp.StatusCode,
 		Body:       body,
 		Request:    request,
@@ -184,7 +180,7 @@ func (f *Fetcher) fetch(req *http.Request) (web.Response, error) {
 	}, nil
 }
 
-func (f *Fetcher) handleMiddlewares(req *web.Request) error {
+func (f *Fetcher) handleMiddlewares(req *Request) error {
 	for _, m := range f.middlewares {
 		m(req)
 	}
