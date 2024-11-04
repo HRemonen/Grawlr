@@ -48,8 +48,8 @@ type Fetcher struct {
 	AllowedURLs []string
 	// DisallowedURLs is a list of URLs that are disallowed to be fetched. Can be set with the WithDisallowedURLs functional option.
 	DisallowedURLs []string
-	// middlewares are an array of functions that are run before the request is made to the site.
-	middlewares []Middleware
+	// requestMiddlewares is a list of request middlewares that are applied to each request. Can be set with the OnRequest functional option.
+	requestMiddlewares []Middleware
 	// ignoreRobots is a flag that determines whether robots.txt should be ignored, defaults to false. Can be set with the WithIgnoreRobots functional option.
 	ignoreRobots bool
 	// robotsMap is a map of hostnames to robotstxt.RobotsData, which is used to cache robots.txt files.
@@ -61,13 +61,13 @@ type Fetcher struct {
 // NewFetcher creates a new Fetcher with the given http.Client.
 func NewFetcher(options ...Options) *Fetcher {
 	f := &Fetcher{
-		Client:         http.DefaultClient,
-		AllowedURLs:    []string{},
-		DisallowedURLs: []string{},
-		middlewares:    []Middleware{},
-		ignoreRobots:   false,
-		robotsMap:      make(map[string]*robotstxt.RobotsData),
-		lock:           &sync.RWMutex{},
+		Client:             http.DefaultClient,
+		AllowedURLs:        []string{},
+		DisallowedURLs:     []string{},
+		requestMiddlewares: make([]Middleware, 0, 4),
+		ignoreRobots:       false,
+		robotsMap:          make(map[string]*robotstxt.RobotsData),
+		lock:               &sync.RWMutex{},
 	}
 
 	for _, option := range options {
@@ -105,11 +105,12 @@ func WithIgnoreRobots(ignore bool) Options {
 	}
 }
 
-// WithMiddleware is a functional option that adds a middleware to the Fetcher.
-func WithMiddlewares(middlewares ...Middleware) Options {
-	return func(f *Fetcher) {
-		f.middlewares = append(f.middlewares, middlewares...)
-	}
+// OnRequest is a functional option that adds a request middleware to the Fetcher.
+func (f *Fetcher) OnRequest(middleware Middleware) {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+
+	f.requestMiddlewares = append(f.requestMiddlewares, middleware)
 }
 
 // Visit requests the web page at the given URL if it is allowed to be fetched.
@@ -150,7 +151,7 @@ func (f *Fetcher) fetch(req *http.Request) (Response, error) {
 		Body:    req.Body,
 	}
 
-	if err := f.handleMiddlewares(request); err != nil {
+	if err := f.handleOnRequest(request); err != nil {
 		return Response{}, err
 	}
 
@@ -180,8 +181,8 @@ func (f *Fetcher) fetch(req *http.Request) (Response, error) {
 	}, nil
 }
 
-func (f *Fetcher) handleMiddlewares(req *Request) error {
-	for _, m := range f.middlewares {
+func (f *Fetcher) handleOnRequest(req *Request) error {
+	for _, m := range f.requestMiddlewares {
 		m(req)
 	}
 
