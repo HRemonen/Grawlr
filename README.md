@@ -40,10 +40,10 @@ Currently, the project does not actually expose any function or interface to use
 
 This project includes tests for various different modules.
 
-To run the tests for a single package, use the directory:
+To run the tests for a single package, use the command:
 
 ```bash
-go test -v ./internal
+go test -v <package name dir>
 ```
 
 To run all the tests:
