@@ -20,5 +20,10 @@ func main() {
 		log.Println("Visiting", req.URL.String())
 	})
 
+	f.OnResponse(func(res *grawl.Response) {
+		log.Println("Visited", res.Request.URL.String())
+		log.Println("Status code", res.StatusCode)
+	})
+
 	f.Visit("https://www.hremonen.com")
 }

@@ -51,6 +51,8 @@ type Fetcher struct {
 	DisallowedURLs []string
 	// requestMiddlewares is a list of request middlewares that are applied to each request. Can be set with the OnRequest functional option.
 	requestMiddlewares []ReqMiddleware
+	// responseMiddlewares is a list of response middlewares that are applied to each response. Can be set with the OnResponse functional option.
+	responseMiddlewares []ResMiddleware
 	// ignoreRobots is a flag that determines whether robots.txt should be ignored, defaults to false. Can be set with the WithIgnoreRobots functional option.
 	ignoreRobots bool
 	// robotsMap is a map of hostnames to robotstxt.RobotsData, which is used to cache robots.txt files.
@@ -62,13 +64,14 @@ type Fetcher struct {
 // NewFetcher creates a new Fetcher with the given http.Client.
 func NewFetcher(options ...Options) *Fetcher {
 	f := &Fetcher{
-		Client:             http.DefaultClient,
-		AllowedURLs:        []string{},
-		DisallowedURLs:     []string{},
-		requestMiddlewares: make([]ReqMiddleware, 0, 4),
-		ignoreRobots:       false,
-		robotsMap:          make(map[string]*robotstxt.RobotsData),
-		lock:               &sync.RWMutex{},
+		Client:              http.DefaultClient,
+		AllowedURLs:         []string{},
+		DisallowedURLs:      []string{},
+		requestMiddlewares:  make([]ReqMiddleware, 0, 4),
+		responseMiddlewares: make([]ResMiddleware, 0, 4),
+		ignoreRobots:        false,
+		robotsMap:           make(map[string]*robotstxt.RobotsData),
+		lock:                &sync.RWMutex{},
 	}
 
 	for _, option := range options {
@@ -114,36 +117,44 @@ func (f *Fetcher) OnRequest(middleware ReqMiddleware) {
 	f.requestMiddlewares = append(f.requestMiddlewares, middleware)
 }
 
+// OnResponse is a functional option that adds a response middleware to the Fetcher.
+func (f *Fetcher) OnResponse(middleware ResMiddleware) {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+
+	f.responseMiddlewares = append(f.responseMiddlewares, middleware)
+}
+
 // Visit requests the web page at the given URL if it is allowed to be fetched.
 // It returns a Response with the response data or an error if the request fails.
-func (f *Fetcher) Visit(u string) (Response, error) {
+func (f *Fetcher) Visit(u string) (*Response, error) {
 	return f.scrape(u)
 }
 
-func (f *Fetcher) scrape(u string) (Response, error) {
+func (f *Fetcher) scrape(u string) (*Response, error) {
 	parsedURL, err := url.Parse(u)
 	if err != nil {
-		return Response{}, err
+		return &Response{}, err
 	}
 
 	if err := f.checkRobots(parsedURL); err != nil {
-		return Response{}, err
+		return &Response{}, err
 	}
 
 	if err := f.checkFilters(parsedURL); err != nil {
-		return Response{}, err
+		return &Response{}, err
 	}
 
 	ctx := context.Background() // TODO: add functionality to cancel requests
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedURL.String(), http.NoBody)
 	if err != nil {
-		return Response{}, err
+		return &Response{}, err
 	}
 
 	return f.fetch(req)
 }
 
-func (f *Fetcher) fetch(req *http.Request) (Response, error) {
+func (f *Fetcher) fetch(req *http.Request) (*Response, error) {
 	request := &Request{
 		URL:     req.URL,
 		Headers: &req.Header,
@@ -156,7 +167,7 @@ func (f *Fetcher) fetch(req *http.Request) (Response, error) {
 
 	res, err := f.Client.Do(req)
 	if err != nil {
-		return Response{}, err
+		return &Response{}, err
 	}
 
 	defer func() {
@@ -167,22 +178,37 @@ func (f *Fetcher) fetch(req *http.Request) (Response, error) {
 
 	b, err := io.ReadAll(res.Body)
 	if err != nil {
-		return Response{}, err
+		return &Response{}, err
 	}
 
 	body := bytes.NewReader(b)
+	doc, err := goquery.NewDocumentFromReader(body)
+	if err != nil {
+		return &Response{}, err
+	}
 
-	return Response{
+	response := &Response{
 		StatusCode: res.StatusCode,
-		Body:       body,
-		Request:    request,
 		Headers:    &res.Header,
-	}, nil
+		Request:    request,
+		Body:       body,
+		Document:   doc,
+	}
+
+	f.handleOnResponse(response)
+
+	return response, nil
 }
 
 func (f *Fetcher) handleOnRequest(req *Request) {
 	for _, m := range f.requestMiddlewares {
 		m(req)
+	}
+}
+
+func (f *Fetcher) handleOnResponse(res *Response) {
+	for _, m := range f.responseMiddlewares {
+		m(res)
 	}
 }
 
