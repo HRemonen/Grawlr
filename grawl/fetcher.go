@@ -38,7 +38,8 @@ var (
 // Options is a type for functional options that can be used to configure a Fetcher.
 type Options func(f *Fetcher)
 
-type Middleware func(req *Request)
+type ReqMiddleware func(req *Request)
+type ResMiddleware func(res *Response)
 
 // Fetcher is a Fetcher that uses an http.Client to fetch web pages.
 type Fetcher struct {
@@ -49,7 +50,7 @@ type Fetcher struct {
 	// DisallowedURLs is a list of URLs that are disallowed to be fetched. Can be set with the WithDisallowedURLs functional option.
 	DisallowedURLs []string
 	// requestMiddlewares is a list of request middlewares that are applied to each request. Can be set with the OnRequest functional option.
-	requestMiddlewares []Middleware
+	requestMiddlewares []ReqMiddleware
 	// ignoreRobots is a flag that determines whether robots.txt should be ignored, defaults to false. Can be set with the WithIgnoreRobots functional option.
 	ignoreRobots bool
 	// robotsMap is a map of hostnames to robotstxt.RobotsData, which is used to cache robots.txt files.
@@ -64,7 +65,7 @@ func NewFetcher(options ...Options) *Fetcher {
 		Client:             http.DefaultClient,
 		AllowedURLs:        []string{},
 		DisallowedURLs:     []string{},
-		requestMiddlewares: make([]Middleware, 0, 4),
+		requestMiddlewares: make([]ReqMiddleware, 0, 4),
 		ignoreRobots:       false,
 		robotsMap:          make(map[string]*robotstxt.RobotsData),
 		lock:               &sync.RWMutex{},
@@ -106,7 +107,7 @@ func WithIgnoreRobots(ignore bool) Options {
 }
 
 // OnRequest is a functional option that adds a request middleware to the Fetcher.
-func (f *Fetcher) OnRequest(middleware Middleware) {
+func (f *Fetcher) OnRequest(middleware ReqMiddleware) {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
@@ -153,18 +154,18 @@ func (f *Fetcher) fetch(req *http.Request) (Response, error) {
 
 	f.handleOnRequest(request)
 
-	resp, err := f.Client.Do(req)
+	res, err := f.Client.Do(req)
 	if err != nil {
 		return Response{}, err
 	}
 
 	defer func() {
-		if err := resp.Body.Close(); err != nil {
+		if err := res.Body.Close(); err != nil {
 			log.Printf("error closing response body: %v for request of: %v", err, req.URL)
 		}
 	}()
 
-	b, err := io.ReadAll(resp.Body)
+	b, err := io.ReadAll(res.Body)
 	if err != nil {
 		return Response{}, err
 	}
@@ -172,10 +173,10 @@ func (f *Fetcher) fetch(req *http.Request) (Response, error) {
 	body := bytes.NewReader(b)
 
 	return Response{
-		StatusCode: resp.StatusCode,
+		StatusCode: res.StatusCode,
 		Body:       body,
 		Request:    request,
-		Headers:    &resp.Header,
+		Headers:    &res.Header,
 	}, nil
 }
 
@@ -196,14 +197,14 @@ func (f *Fetcher) checkRobots(parsedURL *url.URL) error {
 
 	if !ok {
 		robotURL := parsedURL.Scheme + "://" + parsedURL.Host + "/robots.txt"
-		resp, err := f.Client.Get(robotURL) //nolint: noctx // we don't need a context here
+		res, err := f.Client.Get(robotURL) //nolint: noctx // we don't need a context here
 		if err != nil {
 			return err
 		}
 
-		defer resp.Body.Close() //nolint: errcheck // because we don't care about the error here
+		defer res.Body.Close() //nolint: errcheck // because we don't care about the error here
 
-		robot, err = robotstxt.FromResponse(resp)
+		robot, err = robotstxt.FromResponse(res)
 		if err != nil {
 			return err
 		}

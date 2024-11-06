@@ -163,15 +163,15 @@ func TestFetcher_Visit(t *testing.T) {
 		req.Headers.Set("User-Agent", "Test User Agent")
 	})
 
-	resp, err := f.Visit(server.URL + "/")
+	res, err := f.Visit(server.URL + "/")
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
 
 	if !onRequestCalled {
 		t.Error("OnRequest middleware was not called")
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(res.Body)
 	assert.NoError(t, err)
 	assert.Equal(t, "Hello, client\n", string(body))
 }
@@ -181,10 +181,10 @@ func TestFetcher_VisitRedirect(t *testing.T) {
 	defer server.Close()
 
 	f := newTestFetcher()
-	resp, err := f.Visit(server.URL + "/redirect")
+	res, err := f.Visit(server.URL + "/redirect")
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
-	assert.Equal(t, "/", resp.Headers.Get("Location"))
+	assert.Equal(t, http.StatusSeeOther, res.StatusCode)
+	assert.Equal(t, "/", res.Headers.Get("Location"))
 }
 
 func TestFetcher_VisitErrorPage(t *testing.T) {
@@ -192,11 +192,11 @@ func TestFetcher_VisitErrorPage(t *testing.T) {
 	defer server.Close()
 
 	f := newTestFetcher()
-	resp, err := f.Visit(server.URL + "/error")
+	res, err := f.Visit(server.URL + "/error")
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(res.Body)
 	assert.NoError(t, err)
 	assert.Contains(t, string(body), "Internal server error")
 }
@@ -206,9 +206,9 @@ func TestFetcher_VisitNotFoundPage(t *testing.T) {
 	defer server.Close()
 
 	f := newTestFetcher()
-	resp, err := f.Visit(server.URL + "/404")
+	res, err := f.Visit(server.URL + "/404")
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+	assert.Equal(t, http.StatusNotFound, res.StatusCode)
 }
 
 func TestFetcher_VisitWithRobotsAllowed(t *testing.T) {
@@ -216,11 +216,11 @@ func TestFetcher_VisitWithRobotsAllowed(t *testing.T) {
 	defer server.Close()
 
 	f := newTestFetcher()
-	resp, err := f.Visit(server.URL + "/allowed")
+	res, err := f.Visit(server.URL + "/allowed")
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(res.Body)
 	assert.NoError(t, err)
 	assert.Equal(t, "Allowed", string(body))
 }
@@ -239,11 +239,11 @@ func TestFetcher_VisitRobotsTxt(t *testing.T) {
 	defer server.Close()
 
 	f := newTestFetcher()
-	resp, err := f.Visit(server.URL + "/robots.txt")
+	res, err := f.Visit(server.URL + "/robots.txt")
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(res.Body)
 	assert.NoError(t, err)
 	assert.Contains(t, string(body), "User-agent: *\nDisallow: /disallowed")
 }
@@ -253,11 +253,11 @@ func TestFetcher_VisitRelativeLinks(t *testing.T) {
 	defer server.Close()
 
 	f := newTestFetcher()
-	resp, err := f.Visit(server.URL + "/relative_links")
+	res, err := f.Visit(server.URL + "/relative_links")
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(res.Body)
 	assert.NoError(t, err)
 	content := string(body)
 
@@ -271,11 +271,11 @@ func TestFetcher_VisitComplexWhitespace(t *testing.T) {
 	defer server.Close()
 
 	f := newTestFetcher()
-	resp, err := f.Visit(server.URL + "/complex_whitespace")
+	res, err := f.Visit(server.URL + "/complex_whitespace")
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(res.Body)
 	assert.NoError(t, err)
 	content := string(body)
 
@@ -294,13 +294,13 @@ func TestFetcher_VisitWithAllowedURLs(t *testing.T) {
 
 	f := newTestFetcher(WithAllowedURLs(allowed))
 
-	resp, err := f.Visit(server.URL + "/allowed")
+	res, err := f.Visit(server.URL + "/allowed")
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
 
-	resp, err = f.Visit(server.URL + "/faq")
+	res, err = f.Visit(server.URL + "/faq")
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
 
 	_, err = f.Visit(server.URL + "/")
 	assert.ErrorIs(t, err, ErrForbiddenURL)
@@ -323,7 +323,7 @@ func TestFetcher_VisitWithDisallowedURLs(t *testing.T) {
 	_, err = f.Visit(server.URL + "/faq")
 	assert.ErrorIs(t, err, ErrForbiddenURL)
 
-	resp, err := f.Visit(server.URL + "/")
+	res, err := f.Visit(server.URL + "/")
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
 }
