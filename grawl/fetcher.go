@@ -177,25 +177,33 @@ func (f *Fetcher) fetch(req *http.Request) error {
 		}
 	}()
 
+	// Read the full response body into `b`.
 	b, err := io.ReadAll(res.Body)
 	if err != nil {
 		return err
 	}
 
+	// Create a new reader from `b` for repeated reads.
 	body := bytes.NewReader(b)
+
+	// Parse the body into a goquery document (this consumes the body reader).
 	doc, err := goquery.NewDocumentFromReader(body)
 	if err != nil {
 		return err
 	}
 
+	// Reset the body reader for later use in `OnResponse`.
+	body.Seek(0, io.SeekStart)
+
 	response := &Response{
 		StatusCode: res.StatusCode,
 		Headers:    &res.Header,
 		Request:    request,
-		Body:       body,
+		Body:       body, // Assign the reusable reader here.
 		Document:   doc,
 	}
 
+	// Pass the response to the `OnResponse` handler.
 	f.handleOnResponse(response)
 
 	return nil
