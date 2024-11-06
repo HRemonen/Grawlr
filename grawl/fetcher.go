@@ -151,9 +151,7 @@ func (f *Fetcher) fetch(req *http.Request) (Response, error) {
 		Body:    req.Body,
 	}
 
-	if err := f.handleOnRequest(request); err != nil {
-		return Response{}, err
-	}
+	f.handleOnRequest(request)
 
 	resp, err := f.Client.Do(req)
 	if err != nil {
@@ -181,12 +179,10 @@ func (f *Fetcher) fetch(req *http.Request) (Response, error) {
 	}, nil
 }
 
-func (f *Fetcher) handleOnRequest(req *Request) error {
+func (f *Fetcher) handleOnRequest(req *Request) {
 	for _, m := range f.requestMiddlewares {
 		m(req)
 	}
-
-	return nil
 }
 
 func (f *Fetcher) checkRobots(parsedURL *url.URL) error {
