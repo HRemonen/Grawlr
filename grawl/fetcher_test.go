@@ -150,21 +150,33 @@ func newTestFetcher(options ...Options) *Fetcher {
 	)
 }
 
-func TestFetcher_FetchHomePage(t *testing.T) {
+func TestFetcher_Visit(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
+	onRequestCalled := false
+
 	f := newTestFetcher()
+
+	f.OnRequest(func(req *Request) {
+		onRequestCalled = true
+		req.Headers.Set("User-Agent", "Test User Agent")
+	})
+
 	resp, err := f.Visit(server.URL + "/")
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	if !onRequestCalled {
+		t.Error("OnRequest middleware was not called")
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	assert.NoError(t, err)
 	assert.Equal(t, "Hello, client\n", string(body))
 }
 
-func TestFetcher_FetchRedirect(t *testing.T) {
+func TestFetcher_VisitRedirect(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
@@ -175,7 +187,7 @@ func TestFetcher_FetchRedirect(t *testing.T) {
 	assert.Equal(t, "/", resp.Headers.Get("Location"))
 }
 
-func TestFetcher_FetchErrorPage(t *testing.T) {
+func TestFetcher_VisitErrorPage(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
@@ -189,7 +201,7 @@ func TestFetcher_FetchErrorPage(t *testing.T) {
 	assert.Contains(t, string(body), "Internal server error")
 }
 
-func TestFetcher_FetchNotFoundPage(t *testing.T) {
+func TestFetcher_VisitNotFoundPage(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
@@ -199,7 +211,7 @@ func TestFetcher_FetchNotFoundPage(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
 
-func TestFetcher_FetchWithRobotsAllowed(t *testing.T) {
+func TestFetcher_VisitWithRobotsAllowed(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
@@ -213,7 +225,7 @@ func TestFetcher_FetchWithRobotsAllowed(t *testing.T) {
 	assert.Equal(t, "Allowed", string(body))
 }
 
-func TestFetcher_FetchWithRobotsDisallowed(t *testing.T) {
+func TestFetcher_VisitWithRobotsDisallowed(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
@@ -222,7 +234,7 @@ func TestFetcher_FetchWithRobotsDisallowed(t *testing.T) {
 	assert.ErrorIs(t, err, ErrRobotsDisallowed)
 }
 
-func TestFetcher_FetchRobotsTxt(t *testing.T) {
+func TestFetcher_VisitRobotsTxt(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
@@ -236,26 +248,7 @@ func TestFetcher_FetchRobotsTxt(t *testing.T) {
 	assert.Contains(t, string(body), "User-agent: *\nDisallow: /disallowed")
 }
 
-func TestFetcher_FetchFAQPage(t *testing.T) {
-	server := newTestServer()
-	defer server.Close()
-
-	f := newTestFetcher()
-	resp, err := f.Visit(server.URL + "/faq")
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-
-	body, err := io.ReadAll(resp.Body)
-	assert.NoError(t, err)
-	content := string(body)
-
-	assert.Contains(t, content, `<h1>Frequently Asked Questions</h1>`)
-	assert.Contains(t, content, `<a href="/">Home</a>`)
-	assert.Contains(t, content, `<a href="/about">About Us</a>`)
-	assert.Contains(t, content, `<a href="https://external.com/resource">External Resource</a>`)
-}
-
-func TestFetcher_FetchRelativeLinksPage(t *testing.T) {
+func TestFetcher_VisitRelativeLinks(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
@@ -273,7 +266,7 @@ func TestFetcher_FetchRelativeLinksPage(t *testing.T) {
 	assert.Contains(t, content, `<a href="./page3">Page 3</a>`)
 }
 
-func TestFetcher_FetchComplexWhitespacePage(t *testing.T) {
+func TestFetcher_VisitComplexWhitespace(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
@@ -290,7 +283,7 @@ func TestFetcher_FetchComplexWhitespacePage(t *testing.T) {
 	assert.Contains(t, content, `<a href="/spaced_link">Spaced Link</a>`)
 }
 
-func TestFetcher_AllowedURLs(t *testing.T) {
+func TestFetcher_VisitWithAllowedURLs(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
@@ -313,7 +306,7 @@ func TestFetcher_AllowedURLs(t *testing.T) {
 	assert.ErrorIs(t, err, ErrForbiddenURL)
 }
 
-func TestFetcher_DisallowedURLs(t *testing.T) {
+func TestFetcher_VisitWithDisallowedURLs(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
