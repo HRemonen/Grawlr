@@ -128,34 +128,34 @@ func (f *Fetcher) OnResponse(middleware ResMiddleware) {
 
 // Visit requests the web page at the given URL if it is allowed to be fetched.
 // It returns a Response with the response data or an error if the request fails.
-func (f *Fetcher) Visit(u string) (*Response, error) {
+func (f *Fetcher) Visit(u string) error {
 	return f.scrape(u)
 }
 
-func (f *Fetcher) scrape(u string) (*Response, error) {
+func (f *Fetcher) scrape(u string) error {
 	parsedURL, err := url.Parse(u)
 	if err != nil {
-		return &Response{}, err
+		return err
 	}
 
 	if err := f.checkRobots(parsedURL); err != nil {
-		return &Response{}, err
+		return err
 	}
 
 	if err := f.checkFilters(parsedURL); err != nil {
-		return &Response{}, err
+		return err
 	}
 
 	ctx := context.Background() // TODO: add functionality to cancel requests
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedURL.String(), http.NoBody)
 	if err != nil {
-		return &Response{}, err
+		return err
 	}
 
 	return f.fetch(req)
 }
 
-func (f *Fetcher) fetch(req *http.Request) (*Response, error) {
+func (f *Fetcher) fetch(req *http.Request) error {
 	request := &Request{
 		URL:     req.URL,
 		Headers: &req.Header,
@@ -168,7 +168,7 @@ func (f *Fetcher) fetch(req *http.Request) (*Response, error) {
 
 	res, err := f.Client.Do(req)
 	if err != nil {
-		return &Response{}, err
+		return err
 	}
 
 	defer func() {
@@ -179,13 +179,13 @@ func (f *Fetcher) fetch(req *http.Request) (*Response, error) {
 
 	b, err := io.ReadAll(res.Body)
 	if err != nil {
-		return &Response{}, err
+		return err
 	}
 
 	body := bytes.NewReader(b)
 	doc, err := goquery.NewDocumentFromReader(body)
 	if err != nil {
-		return &Response{}, err
+		return err
 	}
 
 	response := &Response{
@@ -198,7 +198,7 @@ func (f *Fetcher) fetch(req *http.Request) (*Response, error) {
 
 	f.handleOnResponse(response)
 
-	return response, nil
+	return nil
 }
 
 func (f *Fetcher) handleOnRequest(req *Request) {
