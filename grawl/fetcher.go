@@ -25,6 +25,7 @@ import (
 	"net/url"
 	"sync"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/temoto/robotstxt"
 )
 
