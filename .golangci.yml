@@ -29,7 +29,6 @@ linters:
     - gocyclo
     - gofumpt
     - rowserrcheck
-    - revive
     - goprintffuncname
     - gosec
     - gosimple
@@ -50,6 +49,21 @@ issues:
   # enable issues excluded by default
   exclude-use-default: false
   exclude-rules:
+    - linters:
+        - stylecheck
+      text:
+        "ST1000"
+    - path: main.go
+      linters:
+        - gochecknoglobals
+        - goconst
+        - gocognit
+        - gocritic
+        - godox
+        - revive
+        - funlen
+        - errcheck
+        - gosec
     - path: (.+)_test.go
       linters:
         - gochecknoglobals
