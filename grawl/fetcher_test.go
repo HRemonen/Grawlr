@@ -214,103 +214,7 @@ func TestFetcher_VisitRedirect(t *testing.T) {
 	}
 }
 
-/* func TestFetcher_VisitErrorPage(t *testing.T) {
-	server := newTestServer()
-	defer server.Close()
-
-	f := newTestFetcher()
-	res, err := f.Visit(server.URL + "/error")
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
-
-	body, err := io.ReadAll(res.Body)
-	assert.NoError(t, err)
-	assert.Contains(t, string(body), "Internal server error")
-} */
-
-/* func TestFetcher_VisitNotFoundPage(t *testing.T) {
-	server := newTestServer()
-	defer server.Close()
-
-	f := newTestFetcher()
-	err := f.Visit(server.URL + "/404")
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusNotFound, res.StatusCode)
-} */
-
-/* func TestFetcher_VisitWithRobotsAllowed(t *testing.T) {
-	server := newTestServer()
-	defer server.Close()
-
-	f := newTestFetcher()
-	res, err := f.Visit(server.URL + "/allowed")
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-
-	body, err := io.ReadAll(res.Body)
-	assert.NoError(t, err)
-	assert.Equal(t, "Allowed", string(body))
-} */
-
-/* func TestFetcher_VisitWithRobotsDisallowed(t *testing.T) {
-	server := newTestServer()
-	defer server.Close()
-
-	f := newTestFetcher()
-	_, err := f.Visit(server.URL + "/disallowed")
-	assert.ErrorIs(t, err, ErrRobotsDisallowed)
-} */
-
-/* func TestFetcher_VisitRobotsTxt(t *testing.T) {
-	server := newTestServer()
-	defer server.Close()
-
-	f := newTestFetcher()
-	res, err := f.Visit(server.URL + "/robots.txt")
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-
-	body, err := io.ReadAll(res.Body)
-	assert.NoError(t, err)
-	assert.Contains(t, string(body), "User-agent: *\nDisallow: /disallowed")
-} */
-
-/* func TestFetcher_VisitRelativeLinks(t *testing.T) {
-	server := newTestServer()
-	defer server.Close()
-
-	f := newTestFetcher()
-	res, err := f.Visit(server.URL + "/relative_links")
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-
-	body, err := io.ReadAll(res.Body)
-	assert.NoError(t, err)
-	content := string(body)
-
-	assert.Contains(t, content, `<a href="/page1">Page 1</a>`)
-	assert.Contains(t, content, `<a href="../page2">Page 2</a>`)
-	assert.Contains(t, content, `<a href="./page3">Page 3</a>`)
-} */
-
-/* func TestFetcher_VisitComplexWhitespace(t *testing.T) {
-	server := newTestServer()
-	defer server.Close()
-
-	f := newTestFetcher()
-	res, err := f.Visit(server.URL + "/complex_whitespace")
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-
-	body, err := io.ReadAll(res.Body)
-	assert.NoError(t, err)
-	content := string(body)
-
-	assert.Contains(t, content, `<h1>Complex Whitespace Page</h1>`)
-	assert.Contains(t, content, `<a href="/spaced_link">Spaced Link</a>`)
-} */
-
-/* func TestFetcher_VisitWithAllowedURLs(t *testing.T) {
+func TestFetcher_VisitWithAllowedURLs(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
@@ -319,21 +223,16 @@ func TestFetcher_VisitRedirect(t *testing.T) {
 		server.URL + "/faq",
 	}
 
-	f := newTestFetcher(WithAllowedURLs(allowed))
+	f := newTestFetcher(WithAllowedURLs(allowed), WithIgnoreRobots(true))
 
-	res, err := f.Visit(server.URL + "/allowed")
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-
-	res, err = f.Visit(server.URL + "/faq")
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-
-	_, err = f.Visit(server.URL + "/")
+	err := f.Visit(server.URL + "/")
 	assert.ErrorIs(t, err, ErrForbiddenURL)
-} */
 
-/* func TestFetcher_VisitWithDisallowedURLs(t *testing.T) {
+	err = f.Visit(server.URL + "/disallowed")
+	assert.ErrorIs(t, err, ErrForbiddenURL)
+}
+
+func TestFetcher_VisitWithDisallowedURLs(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
@@ -342,15 +241,26 @@ func TestFetcher_VisitRedirect(t *testing.T) {
 		server.URL + "/faq",
 	}
 
+	onResponseCalled := false
+
 	f := newTestFetcher(WithDisallowedURLs(disallowed))
 
-	_, err := f.Visit(server.URL + "/allowed")
+	f.OnResponse(func(res *Response) {
+		onResponseCalled = true
+
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+	})
+
+	err := f.Visit(server.URL + "/allowed")
 	assert.ErrorIs(t, err, ErrForbiddenURL)
 
-	_, err = f.Visit(server.URL + "/faq")
+	err = f.Visit(server.URL + "/faq")
 	assert.ErrorIs(t, err, ErrForbiddenURL)
 
-	res, err := f.Visit(server.URL + "/")
+	err = f.Visit(server.URL + "/")
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-} */
+
+	if !onResponseCalled {
+		t.Error("OnResponse middleware was not called")
+	}
+}
