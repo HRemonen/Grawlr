@@ -39,7 +39,10 @@ var (
 // Options is a type for functional options that can be used to configure a Fetcher.
 type Options func(f *Fetcher)
 
+// ReqMiddleware is a type for request middlewares that can be used to modify a Request before it is fetched.
 type ReqMiddleware func(req *Request)
+
+// ResMiddleware is a type for response middlewares that can be used to modify a Response after it is fetched.
 type ResMiddleware func(res *Response)
 
 // Fetcher is a Fetcher that uses an http.Client to fetch web pages.
@@ -129,10 +132,10 @@ func (f *Fetcher) OnResponse(middleware ResMiddleware) {
 // Visit requests the web page at the given URL if it is allowed to be fetched.
 // It returns a Response with the response data or an error if the request fails.
 func (f *Fetcher) Visit(u string) error {
-	return f.scrape(u)
+	return f.visit(u)
 }
 
-func (f *Fetcher) scrape(u string) error {
+func (f *Fetcher) visit(u string) error {
 	parsedURL, err := url.Parse(u)
 	if err != nil {
 		return err
@@ -193,7 +196,10 @@ func (f *Fetcher) fetch(req *http.Request) error {
 	}
 
 	// Reset the body reader for later use in `OnResponse`.
-	body.Seek(0, io.SeekStart)
+	_, err = body.Seek(0, io.SeekStart)
+	if err != nil {
+		return err
+	}
 
 	response := &Response{
 		StatusCode: res.StatusCode,
