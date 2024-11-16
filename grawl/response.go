@@ -18,8 +18,6 @@ package grawl
 import (
 	"io"
 	"net/http"
-
-	"github.com/PuerkitoBio/goquery"
 )
 
 // Response is a representation of the response from a Fetcher.
@@ -28,5 +26,4 @@ type Response struct {
 	Headers    *http.Header
 	Request    *Request
 	Body       io.Reader
-	Document   *goquery.Document
 }

@@ -22,6 +22,7 @@ import (
 
 // Element is a representation of an HTML element.
 type Element struct {
+	Text       string
 	attributes []html.Attribute
 	Request    *Request
 	Response   *Response

@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -45,6 +46,12 @@ type ReqMiddleware func(req *Request)
 // ResMiddleware is a type for response middlewares that can be used to modify a Response after it is fetched.
 type ResMiddleware func(res *Response)
 
+type ScrapeFn func(el *Element)
+type ScrapeMiddleware struct {
+	Selector string
+	Function ScrapeFn
+}
+
 // Fetcher is a Fetcher that uses an http.Client to fetch web pages.
 type Fetcher struct {
 	// Client is the http.Client used to fetch web pages.
@@ -57,6 +64,8 @@ type Fetcher struct {
 	requestMiddlewares []ReqMiddleware
 	// responseMiddlewares is a list of response middlewares that are applied to each response. Can be set with the OnResponse functional option.
 	responseMiddlewares []ResMiddleware
+	// scrapeMiddlewares is a list of scrape middlewares that are applied to each element. Can be set with the OnScrape functional option.
+	scrapeMiddlewares []ScrapeMiddleware
 	// ignoreRobots is a flag that determines whether robots.txt should be ignored, defaults to false. Can be set with the WithIgnoreRobots functional option.
 	ignoreRobots bool
 	// robotsMap is a map of hostnames to robotstxt.RobotsData, which is used to cache robots.txt files.
@@ -73,6 +82,7 @@ func NewFetcher(options ...Options) *Fetcher {
 		DisallowedURLs:      []string{},
 		requestMiddlewares:  make([]ReqMiddleware, 0, 4),
 		responseMiddlewares: make([]ResMiddleware, 0, 4),
+		scrapeMiddlewares:   make([]ScrapeMiddleware, 0, 4),
 		ignoreRobots:        false,
 		robotsMap:           make(map[string]*robotstxt.RobotsData),
 		lock:                &sync.RWMutex{},
@@ -114,24 +124,36 @@ func WithIgnoreRobots(ignore bool) Options {
 }
 
 // OnRequest is a functional option that adds a request middleware to the Fetcher.
-func (f *Fetcher) OnRequest(middleware ReqMiddleware) {
+func (f *Fetcher) OnRequest(mw ReqMiddleware) {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
-	f.requestMiddlewares = append(f.requestMiddlewares, middleware)
+	f.requestMiddlewares = append(f.requestMiddlewares, mw)
 }
 
 // OnResponse is a functional option that adds a response middleware to the Fetcher.
-func (f *Fetcher) OnResponse(middleware ResMiddleware) {
+func (f *Fetcher) OnResponse(mw ResMiddleware) {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
-	f.responseMiddlewares = append(f.responseMiddlewares, middleware)
+	f.responseMiddlewares = append(f.responseMiddlewares, mw)
+}
+
+// OnScrape is a functional option that adds a scrape middleware
+func (f *Fetcher) OnScrape(elementSelector string, fn ScrapeFn) {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+
+	f.scrapeMiddlewares = append(f.scrapeMiddlewares, ScrapeMiddleware{
+		Selector: elementSelector,
+		Function: fn,
+	})
 }
 
 // Visit requests the web page at the given URL if it is allowed to be fetched.
 // It returns a Response with the response data or an error if the request fails.
 func (f *Fetcher) Visit(u string) error {
+	fmt.Println("INSIDE VISIT", u)
 	return f.visit(u)
 }
 
@@ -189,12 +211,6 @@ func (f *Fetcher) fetch(req *http.Request) error {
 	// Create a new reader from `b` for repeated reads.
 	body := bytes.NewReader(b)
 
-	// Parse the body into a goquery document (this consumes the body reader).
-	doc, err := goquery.NewDocumentFromReader(body)
-	if err != nil {
-		return err
-	}
-
 	// Reset the body reader for later use in `OnResponse`.
 	_, err = body.Seek(0, io.SeekStart)
 	if err != nil {
@@ -205,12 +221,12 @@ func (f *Fetcher) fetch(req *http.Request) error {
 		StatusCode: res.StatusCode,
 		Headers:    &res.Header,
 		Request:    request,
-		Body:       body, // Assign the reusable reader here.
-		Document:   doc,
+		Body:       body,
 	}
 
-	// Pass the response to the `OnResponse` handler.
 	f.handleOnResponse(response)
+
+	f.handleOnScrape(response)
 
 	return nil
 }
@@ -224,6 +240,33 @@ func (f *Fetcher) handleOnRequest(req *Request) {
 func (f *Fetcher) handleOnResponse(res *Response) {
 	for _, m := range f.responseMiddlewares {
 		m(res)
+	}
+}
+
+func (f *Fetcher) handleOnScrape(res *Response) {
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+	if err != nil {
+		log.Printf("error parsing response body: %v", err)
+		return
+	}
+
+	for _, m := range f.scrapeMiddlewares {
+		idx := 0
+		doc.Find(m.Selector).Each(func(i int, s *goquery.Selection) {
+			for _, n := range s.Nodes {
+				el := &Element{
+					attributes: n.Attr,
+					Request:    res.Request,
+					Response:   res,
+					Selection:  s,
+					Index:      idx,
+				}
+
+				idx++
+
+				m.Function(el)
+			}
+		})
 	}
 }
 
