@@ -27,7 +27,6 @@ type Element struct {
 	Request    *Request
 	Response   *Response
 	Selection  *goquery.Selection
-	Index      int
 }
 
 // Attribute returns the value of the attribute with the given key.
