@@ -46,11 +46,13 @@ type ReqMiddleware func(req *Request)
 // ResMiddleware is a type for response middlewares that can be used to modify a Response after it is fetched.
 type ResMiddleware func(res *Response)
 
-type ScrapeFn func(el *Element)
-type ScrapeMiddleware struct {
-	Selector string
-	Function ScrapeFn
-}
+type (
+	ScrapeFn         func(el *Element)
+	ScrapeMiddleware struct {
+		Selector string
+		Function ScrapeFn
+	}
+)
 
 // Fetcher is a Fetcher that uses an http.Client to fetch web pages.
 type Fetcher struct {

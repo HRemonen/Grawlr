@@ -8,6 +8,8 @@ import (
 )
 
 func main() {
+	seen := make(map[string]bool)
+
 	allowed := []string{
 		"https://www.hremonen.com",
 	}
@@ -20,10 +22,26 @@ func main() {
 		log.Println("Visiting", req.URL.String())
 	})
 
-	f.OnResponse(func(res *grawl.Response) {
-		log.Println("Visited", res.Request.URL.String())
-		log.Println("Status code", res.StatusCode)
+	f.OnScrape("a[href]", func(el *grawl.Element) {
+		link := el.Attribute("href")
+
+		log.Printf("Found link %q -> %s", el.Text, link)
+
+		absURL := el.Request.GetAbsoluteURL(link)
+
+		if seen[absURL] {
+			return
+		}
+		seen[absURL] = true
+
+		err := f.Visit(absURL)
+		if err != nil {
+			log.Println("Error visiting", absURL, err)
+		}
 	})
 
-	f.Visit("https://www.hremonen.com")
+	err := f.Visit("https://www.hremonen.com")
+	if err != nil {
+		log.Println("Error visiting start URL", err)
+	}
 }
