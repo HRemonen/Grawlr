@@ -252,7 +252,6 @@ func (f *Fetcher) handleOnScrape(res *Response) {
 	}
 
 	for _, m := range f.scrapeMiddlewares {
-		idx := 0
 		doc.Find(m.Selector).Each(func(i int, s *goquery.Selection) {
 			for _, n := range s.Nodes {
 				el := &Element{
@@ -261,10 +260,7 @@ func (f *Fetcher) handleOnScrape(res *Response) {
 					Request:    res.Request,
 					Response:   res,
 					Selection:  s,
-					Index:      idx,
 				}
-
-				idx++
 
 				m.Function(el)
 			}
