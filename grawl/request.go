@@ -16,15 +16,40 @@ limitations under the License.
 package grawl
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 type Request struct {
 	URL     *url.URL
+	BaseURL *url.URL
 	Headers *http.Header
 	Host    string
 	Method  string
 	Body    io.Reader
+}
+
+// GetAbsoluteURL returns the absolute URL for a link found on the page.
+func (r *Request) GetAbsoluteURL(link string) string {
+	if strings.HasPrefix(link, "#") {
+		return ""
+	}
+
+	base, err := url.Parse(r.URL.String())
+	if err != nil {
+		fmt.Printf("Error parsing base URL: %s", err)
+		return ""
+	}
+
+	href, err := url.Parse(link)
+	if err != nil {
+		fmt.Printf("Error parsing href: %s", err)
+		return ""
+	}
+
+	absoluteURL := base.ResolveReference(href)
+	return absoluteURL.String()
 }
