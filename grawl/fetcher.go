@@ -24,6 +24,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 
 	"github.com/PuerkitoBio/goquery"
@@ -318,7 +319,7 @@ func (f *Fetcher) checkFilters(parsedURL *url.URL) error {
 // isURLAllowed checks if the given URL is allowed to be fetched.
 func (f *Fetcher) isURLAllowed(u string) bool {
 	for _, disallowed := range f.DisallowedURLs {
-		if u == disallowed {
+		if strings.HasPrefix(u, disallowed) {
 			return false
 		}
 	}
@@ -328,7 +329,7 @@ func (f *Fetcher) isURLAllowed(u string) bool {
 	}
 
 	for _, allowed := range f.AllowedURLs {
-		if u == allowed {
+		if strings.HasPrefix(u, allowed) {
 			return true
 		}
 	}
