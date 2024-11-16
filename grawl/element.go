@@ -1,0 +1,40 @@
+/*
+Copyright 2024 Henri Remonen
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+package grawl
+
+import (
+	"github.com/PuerkitoBio/goquery"
+	"golang.org/x/net/html"
+)
+
+// Element is a representation of an HTML element.
+type Element struct {
+	attributes []html.Attribute
+	Request    *Request
+	Response   *Response
+	Selection  *goquery.Selection
+	Index      int
+}
+
+// Attribute returns the value of the attribute with the given key.
+func (e *Element) Attribute(key string) string {
+	for _, attr := range e.attributes {
+		if attr.Key == key {
+			return attr.Val
+		}
+	}
+	return ""
+}
