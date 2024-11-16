@@ -257,6 +257,7 @@ func (f *Fetcher) handleOnScrape(res *Response) {
 			for _, n := range s.Nodes {
 				el := &Element{
 					attributes: n.Attr,
+					Text:       s.Text(),
 					Request:    res.Request,
 					Response:   res,
 					Selection:  s,
