@@ -155,10 +155,6 @@ func (f *Fetcher) OnScrape(elementSelector string, fn ScrapeFn) {
 // Visit requests the web page at the given URL if it is allowed to be fetched.
 // It returns a Response with the response data or an error if the request fails.
 func (f *Fetcher) Visit(u string) error {
-	return f.visit(u)
-}
-
-func (f *Fetcher) visit(u string) error {
 	parsedURL, err := url.Parse(u)
 	if err != nil {
 		return err
