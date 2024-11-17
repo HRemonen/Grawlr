@@ -18,7 +18,6 @@ package grawl
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -33,9 +32,13 @@ import (
 
 var (
 	// ErrForbiddenURL is returned when a URL is defined in the AllowedURLs setting.
-	ErrForbiddenURL = errors.New("URL is forbidden")
+	ErrForbiddenURL = func(u string) error {
+		return fmt.Errorf("URL %s is forbidden", u)
+	}
 	// ErrRobotsDisallowed is returned when a URL is disallowed by robots.txt.
-	ErrRobotsDisallowed = errors.New("URL is disallowed by robots.txt")
+	ErrRobotsDisallowed = func(u string) error {
+		return fmt.Errorf("URL %s is disallowed by robots.txt", u)
+	}
 	// ErrVisitedURL is returned when a URL has already been visited.
 	ErrVisitedURL = func(u string) error {
 		return fmt.Errorf("URL %s has already been visited", u)
@@ -303,7 +306,7 @@ func (f *Fetcher) checkRobots(parsedURL *url.URL) error {
 	}
 
 	if !robot.TestAgent(parsedURL.Path, "Grawlr") {
-		return ErrRobotsDisallowed
+		return ErrRobotsDisallowed(parsedURL.String())
 	}
 
 	return nil
@@ -312,12 +315,12 @@ func (f *Fetcher) checkRobots(parsedURL *url.URL) error {
 func (f *Fetcher) checkFilters(parsedURL *url.URL) error {
 	u := parsedURL.String()
 
-	if (f.store.Visited(u)) {
+	if f.store.Visited(u) {
 		return ErrVisitedURL(u)
 	}
 
 	if !f.isURLAllowed(u) {
-		return ErrForbiddenURL
+		return ErrForbiddenURL(u)
 	}
 
 	return nil

@@ -17,24 +17,24 @@ func main() {
 	)
 
 	f.OnRequest(func(req *grawl.Request) {
-		log.Println("Visiting", req.URL.String())
+		log.Println("[MAIN] - Visiting", req.URL.String())
 	})
 
 	f.OnScrape("a[href]", func(el *grawl.Element) {
 		link := el.Attribute("href")
 
-		log.Printf("Found link %q -> %s", el.Text, link)
+		log.Printf("[MAIN] - Found link %q -> %s", el.Text, link)
 
 		absURL := el.Request.GetAbsoluteURL(link)
 
 		err := f.Visit(absURL)
 		if err != nil {
-			log.Println("Error visiting", absURL, err)
+			log.Println("[MAIN] - ", err)
 		}
 	})
 
 	err := f.Visit("https://www.hremonen.com")
 	if err != nil {
-		log.Println("Error visiting start URL", err)
+		log.Println("[MAIN] - Error visiting start URL", err)
 	}
 }
