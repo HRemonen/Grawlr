@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -35,6 +36,10 @@ var (
 	ErrForbiddenURL = errors.New("URL is forbidden")
 	// ErrRobotsDisallowed is returned when a URL is disallowed by robots.txt.
 	ErrRobotsDisallowed = errors.New("URL is disallowed by robots.txt")
+	// ErrVisitedURL is returned when a URL has already been visited.
+	ErrVisitedURL = func(u string) error {
+		return fmt.Errorf("URL %s has already been visited", u)
+	}
 )
 
 // Options is a type for functional options that can be used to configure a Fetcher.
@@ -62,6 +67,8 @@ type Fetcher struct {
 	AllowedURLs []string
 	// DisallowedURLs is a list of URLs that are disallowed to be fetched. Can be set with the WithDisallowedURLs functional option.
 	DisallowedURLs []string
+	// store is a Storer that is used to cache visited URLs.
+	store Storer
 	// requestMiddlewares is a list of request middlewares that are applied to each request. Can be set with the OnRequest functional option.
 	requestMiddlewares []ReqMiddleware
 	// responseMiddlewares is a list of response middlewares that are applied to each response. Can be set with the OnResponse functional option.
@@ -82,6 +89,7 @@ func NewFetcher(options ...Options) *Fetcher {
 		Client:              http.DefaultClient,
 		AllowedURLs:         []string{},
 		DisallowedURLs:      []string{},
+		store:               NewInMemoryStore(),
 		requestMiddlewares:  make([]ReqMiddleware, 0, 4),
 		responseMiddlewares: make([]ResMiddleware, 0, 4),
 		scrapeMiddlewares:   make([]ScrapeMiddleware, 0, 4),
@@ -193,6 +201,8 @@ func (f *Fetcher) fetch(req *http.Request) error {
 		return err
 	}
 
+	f.store.Visit(req.URL.String())
+
 	defer func() {
 		if err := res.Body.Close(); err != nil {
 			log.Printf("error closing response body: %v for request of: %v", err, req.URL)
@@ -301,6 +311,10 @@ func (f *Fetcher) checkRobots(parsedURL *url.URL) error {
 
 func (f *Fetcher) checkFilters(parsedURL *url.URL) error {
 	u := parsedURL.String()
+
+	if (f.store.Visited(u)) {
+		return ErrVisitedURL(u)
+	}
 
 	if !f.isURLAllowed(u) {
 		return ErrForbiddenURL

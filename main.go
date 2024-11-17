@@ -8,8 +8,6 @@ import (
 )
 
 func main() {
-	seen := make(map[string]bool)
-
 	allowed := []string{
 		"https://www.hremonen.com",
 	}
@@ -28,11 +26,6 @@ func main() {
 		log.Printf("Found link %q -> %s", el.Text, link)
 
 		absURL := el.Request.GetAbsoluteURL(link)
-
-		if seen[absURL] {
-			return
-		}
-		seen[absURL] = true
 
 		err := f.Visit(absURL)
 		if err != nil {
