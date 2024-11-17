@@ -225,11 +225,13 @@ func TestFetcher_VisitWithAllowedURLs(t *testing.T) {
 
 	f := newTestFetcher(WithAllowedURLs(allowed), WithIgnoreRobots(true))
 
-	err := f.Visit(server.URL + "/")
-	assert.ErrorIs(t, err, ErrForbiddenURL)
+	url := server.URL + "/"
+	err := f.Visit(url)
+	assert.EqualError(t, err, fmt.Sprintf("URL %s is forbidden", url))
 
-	err = f.Visit(server.URL + "/disallowed")
-	assert.ErrorIs(t, err, ErrForbiddenURL)
+	url = server.URL + "/disallowed"
+	err = f.Visit(url)
+	assert.EqualError(t, err, fmt.Sprintf("URL %s is forbidden", url))
 }
 
 func TestFetcher_VisitWithDisallowedURLs(t *testing.T) {
@@ -251,13 +253,16 @@ func TestFetcher_VisitWithDisallowedURLs(t *testing.T) {
 		assert.Equal(t, http.StatusOK, res.StatusCode)
 	})
 
-	err := f.Visit(server.URL + "/allowed")
-	assert.ErrorIs(t, err, ErrForbiddenURL)
+	url := server.URL + "/allowed"
+	err := f.Visit(url)
+	assert.EqualError(t, err, fmt.Sprintf("URL %s is forbidden", url))
 
-	err = f.Visit(server.URL + "/faq")
-	assert.ErrorIs(t, err, ErrForbiddenURL)
+	url = server.URL + "/faq"
+	err = f.Visit(url)
+	assert.EqualError(t, err, fmt.Sprintf("URL %s is forbidden", url))
 
-	err = f.Visit(server.URL + "/")
+	url = server.URL + "/"
+	err = f.Visit(url)
 	assert.NoError(t, err)
 
 	if !onResponseCalled {
