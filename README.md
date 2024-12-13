@@ -1,6 +1,6 @@
 # Grawlr
 
-**Grawlr**, a simple web crawler written in Go to familiarize myself with concurrency patterns and such with Go.
+**Grawlr**, a simple web crawler written in Go
 
 ## Table of Contents
 - [Installation](#installation)
