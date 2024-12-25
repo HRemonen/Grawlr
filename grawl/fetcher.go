@@ -115,6 +115,14 @@ func WithClient(client *http.Client) Options {
 	}
 }
 
+// WithStore is a functional option that sets the Storer for the Fetcher.
+// See the Storer interface in store.go for more information.
+func WithStore(store Storer) Options {
+	return func(f *Fetcher) {
+		f.store = store
+	}
+}
+
 // WithAllowedURLs is a functional option that sets the allowed URLs for the Fetcher.
 func WithAllowedURLs(urls []string) Options {
 	return func(f *Fetcher) {
