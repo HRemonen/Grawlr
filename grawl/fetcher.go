@@ -83,7 +83,7 @@ type Fetcher struct {
 	// robotsMap is a map of hostnames to robotstxt.RobotsData, which is used to cache robots.txt files.
 	robotsMap map[string]*robotstxt.RobotsData
 	// lock is a mutex used to synchronize access to the robotsMap.
-	lock *sync.RWMutex
+	sync.RWMutex
 }
 
 // NewFetcher creates a new Fetcher with the given http.Client.
@@ -98,7 +98,6 @@ func NewFetcher(options ...Options) *Fetcher {
 		scrapeMiddlewares:   make([]ScrapeMiddleware, 0, 4),
 		ignoreRobots:        false,
 		robotsMap:           make(map[string]*robotstxt.RobotsData),
-		lock:                &sync.RWMutex{},
 	}
 
 	for _, option := range options {
@@ -146,24 +145,24 @@ func WithIgnoreRobots(ignore bool) Options {
 
 // OnRequest is a functional option that adds a request middleware to the Fetcher.
 func (f *Fetcher) OnRequest(mw ReqMiddleware) {
-	f.lock.Lock()
-	defer f.lock.Unlock()
+	f.Lock()
+	defer f.Unlock()
 
 	f.requestMiddlewares = append(f.requestMiddlewares, mw)
 }
 
 // OnResponse is a functional option that adds a response middleware to the Fetcher.
 func (f *Fetcher) OnResponse(mw ResMiddleware) {
-	f.lock.Lock()
-	defer f.lock.Unlock()
+	f.Lock()
+	defer f.Unlock()
 
 	f.responseMiddlewares = append(f.responseMiddlewares, mw)
 }
 
 // OnScrape is a functional option that adds a scrape middleware
 func (f *Fetcher) OnScrape(elementSelector string, fn ScrapeFn) {
-	f.lock.Lock()
-	defer f.lock.Unlock()
+	f.Lock()
+	defer f.Unlock()
 
 	f.scrapeMiddlewares = append(f.scrapeMiddlewares, ScrapeMiddleware{
 		Selector: elementSelector,
@@ -290,9 +289,9 @@ func (f *Fetcher) checkRobots(parsedURL *url.URL) error {
 		return nil
 	}
 
-	f.lock.Lock()
+	f.Lock()
 	robot, ok := f.robotsMap[parsedURL.Host]
-	f.lock.Unlock()
+	f.Unlock()
 
 	if !ok {
 		robotURL := parsedURL.Scheme + "://" + parsedURL.Host + "/robots.txt"
@@ -308,9 +307,9 @@ func (f *Fetcher) checkRobots(parsedURL *url.URL) error {
 			return err
 		}
 
-		f.lock.Lock()
+		f.Lock()
 		f.robotsMap[parsedURL.Host] = robot
-		f.lock.Unlock()
+		f.Unlock()
 	}
 
 	if !robot.TestAgent(parsedURL.Path, "Grawlr") {
