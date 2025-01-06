@@ -1,10 +1,9 @@
-// This file creates a new Fetcher and Crawler and starts the crawling process.
 package main
 
 import (
 	"log"
 
-	"github.com/HRemonen/Grawlr/grawl"
+	"github.com/hremonen/grawlr"
 )
 
 func main() {
@@ -12,15 +11,15 @@ func main() {
 		"https://www.hremonen.com",
 	}
 
-	f := grawl.NewFetcher(
-		grawl.WithAllowedURLs(allowed),
+	f := grawlr.NewFetcher(
+		grawlr.WithAllowedURLs(allowed),
 	)
 
-	f.OnRequest(func(req *grawl.Request) {
+	f.OnRequest(func(req *grawlr.Request) {
 		log.Println("[MAIN] - Visiting", req.URL.String())
 	})
 
-	f.OnScrape("a[href]", func(el *grawl.Element) {
+	f.OnScrape("a[href]", func(el *grawlr.Element) {
 		link := el.Attribute("href")
 
 		log.Printf("[MAIN] - Found link %q -> %s", el.Text, link)

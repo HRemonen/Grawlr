@@ -13,17 +13,28 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package grawl
+package grawlr
 
 import (
-	"io"
-	"net/http"
+	"github.com/PuerkitoBio/goquery"
+	"golang.org/x/net/html"
 )
 
-// Response is a representation of the response from a Fetcher.
-type Response struct {
-	StatusCode int
-	Headers    *http.Header
+// Element is a representation of an HTML element.
+type Element struct {
+	Text       string
+	attributes []html.Attribute
 	Request    *Request
-	Body       io.Reader
+	Response   *Response
+	Selection  *goquery.Selection
+}
+
+// Attribute returns the value of the attribute with the given key.
+func (e *Element) Attribute(key string) string {
+	for _, attr := range e.attributes {
+		if attr.Key == key {
+			return attr.Val
+		}
+	}
+	return ""
 }
