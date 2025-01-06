@@ -186,7 +186,7 @@ func (f *Fetcher) Visit(u string) error {
 		return err
 	}
 
-	ctx := context.Background() // TODO: add functionality to cancel requests
+	ctx := context.TODO() // TODO: add functionality to cancel requests
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedURL.String(), http.NoBody)
 	if err != nil {
 		return err
