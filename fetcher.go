@@ -70,8 +70,7 @@ type Fetcher struct {
 	AllowedURLs []string
 	// DisallowedURLs is a list of URLs that are disallowed to be fetched. Can be set with the WithDisallowedURLs functional option.
 	DisallowedURLs []string
-	// Context is the context used for the Fetcher.
-	// Use this to cancel requests or set deadlines.
+	// Context is the context used to optionally cancel ALL fetcher's requests. Can be set with the WithContext functional option.
 	Context context.Context
 	// store is a Storer that is used to cache visited URLs.
 	store Storer
