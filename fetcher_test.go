@@ -21,6 +21,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -295,5 +296,12 @@ func TestFetcher_VisitWithContext(t *testing.T) {
 	})
 
 	err := f.Visit(server.URL + "/heavyweight")
-	assert.EqualError(t, err, "Get "+server.URL+"/heavyweight: context canceled")
+
+	// Since http.Client.Do returns an url.Error we need to cast the error to *url.Error
+	// to check if the error is of type context.Canceled
+	err, ok := err.(*url.Error)
+	if !ok {
+		t.Error("error is not of type *url.Error - which is expected from http.Client.Do")
+	}
+	assert.ErrorIs(t, err, context.Canceled)
 }
