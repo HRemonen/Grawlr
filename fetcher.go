@@ -70,6 +70,9 @@ type Fetcher struct {
 	AllowedURLs []string
 	// DisallowedURLs is a list of URLs that are disallowed to be fetched. Can be set with the WithDisallowedURLs functional option.
 	DisallowedURLs []string
+	// Context is the context used for the Fetcher.
+	// Use this to cancel requests or set deadlines.
+	Context context.Context
 	// store is a Storer that is used to cache visited URLs.
 	store Storer
 	// requestMiddlewares is a list of request middlewares that are applied to each request. Can be set with the OnRequest functional option.
@@ -92,6 +95,7 @@ func NewFetcher(options ...Options) *Fetcher {
 		Client:              http.DefaultClient,
 		AllowedURLs:         []string{},
 		DisallowedURLs:      []string{},
+		Context:             context.Background(),
 		store:               NewInMemoryStore(),
 		requestMiddlewares:  make([]ReqMiddleware, 0, 4),
 		responseMiddlewares: make([]ResMiddleware, 0, 4),
@@ -115,14 +119,6 @@ func WithClient(client *http.Client) Options {
 	}
 }
 
-// WithStore is a functional option that sets the Storer for the Fetcher.
-// See the Storer interface in store.go for more information.
-func WithStore(store Storer) Options {
-	return func(f *Fetcher) {
-		f.store = store
-	}
-}
-
 // WithAllowedURLs is a functional option that sets the allowed URLs for the Fetcher.
 func WithAllowedURLs(urls []string) Options {
 	return func(f *Fetcher) {
@@ -134,6 +130,21 @@ func WithAllowedURLs(urls []string) Options {
 func WithDisallowedURLs(urls []string) Options {
 	return func(f *Fetcher) {
 		f.DisallowedURLs = urls
+	}
+}
+
+// WithContext is a functional option that sets the context for the Fetcher.
+func WithContext(ctx context.Context) Options {
+	return func(f *Fetcher) {
+		f.Context = ctx
+	}
+}
+
+// WithStore is a functional option that sets the Storer for the Fetcher.
+// See the Storer interface in store.go for more information.
+func WithStore(store Storer) Options {
+	return func(f *Fetcher) {
+		f.store = store
 	}
 }
 
@@ -187,8 +198,7 @@ func (f *Fetcher) Visit(u string) error {
 		return err
 	}
 
-	ctx := context.TODO() // TODO: add functionality to cancel requests
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedURL.String(), http.NoBody)
+	req, err := http.NewRequestWithContext(f.Context, http.MethodGet, parsedURL.String(), http.NoBody)
 	if err != nil {
 		return err
 	}
