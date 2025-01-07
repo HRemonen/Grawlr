@@ -16,6 +16,7 @@
 package grawlr
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -34,6 +35,16 @@ func newUnstartedTestServer() *httptest.Server {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write(helloBytes)
+	})
+
+	mux.HandleFunc("/heavyweight", func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-time.After(time.Second * 2): // Simulate work
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("hello"))
+		case <-r.Context().Done(): // Handle request cancellation
+			http.Error(w, "Request canceled", http.StatusRequestTimeout)
+		}
 	})
 
 	mux.HandleFunc("/redirect", func(w http.ResponseWriter, r *http.Request) {
@@ -268,4 +279,21 @@ func TestFetcher_VisitWithDisallowedURLs(t *testing.T) {
 	if !onResponseCalled {
 		t.Error("OnResponse middleware was not called")
 	}
+}
+
+func TestFetcher_VisitWithContext(t *testing.T) {
+	server := newTestServer()
+	defer server.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	time.AfterFunc(time.Second, cancel)
+
+	f := newTestFetcher(WithContext(ctx))
+
+	f.OnResponse(func(res *Response) {
+		t.Error("OnResponse middleware should not be called")
+	})
+
+	err := f.Visit(server.URL + "/heavyweight")
+	assert.EqualError(t, err, "Get "+server.URL+"/heavyweight: context canceled")
 }
