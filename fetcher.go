@@ -55,10 +55,10 @@ type ReqMiddleware func(req *Request)
 type ResMiddleware func(res *Response)
 
 type (
-	ScrapeFn         func(el *Element)
-	ScrapeMiddleware struct {
+	HTMLCallback   func(el *Element)
+	HTMLMiddleware struct {
 		Selector string
-		Function ScrapeFn
+		Function HTMLCallback
 	}
 )
 
@@ -78,8 +78,8 @@ type Fetcher struct {
 	requestMiddlewares []ReqMiddleware
 	// responseMiddlewares is a list of response middlewares that are applied to each response. Can be set with the ResponseDo functional option.
 	responseMiddlewares []ResMiddleware
-	// scrapeMiddlewares is a list of scrape middlewares that are applied to each element. Can be set with the HTMLDo functional option.
-	scrapeMiddlewares []ScrapeMiddleware
+	// htmlMiddlewares is a list of scrape middlewares that are applied to each HTML element. Can be set with the HTMLDo functional option.
+	htmlMiddlewares []HTMLMiddleware
 	// ignoreRobots is a flag that determines whether robots.txt should be ignored, defaults to false. Can be set with the WithIgnoreRobots functional option.
 	ignoreRobots bool
 	// robotsMap is a map of hostnames to robotstxt.RobotsData, which is used to cache robots.txt files.
@@ -98,7 +98,7 @@ func NewFetcher(options ...Options) *Fetcher {
 		store:               NewInMemoryStore(),
 		requestMiddlewares:  make([]ReqMiddleware, 0, 4),
 		responseMiddlewares: make([]ResMiddleware, 0, 4),
-		scrapeMiddlewares:   make([]ScrapeMiddleware, 0, 4),
+		htmlMiddlewares:     make([]HTMLMiddleware, 0, 4),
 		ignoreRobots:        false,
 		robotsMap:           make(map[string]*robotstxt.RobotsData),
 		mu:                  sync.RWMutex{},
@@ -155,6 +155,7 @@ func WithIgnoreRobots(ignore bool) Options {
 }
 
 // RequestDo is a functional option that adds a request middleware to the Fetcher.
+// Triggers the given ReqMiddleware for each request before it is fetched.
 func (f *Fetcher) RequestDo(mw ReqMiddleware) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -163,6 +164,7 @@ func (f *Fetcher) RequestDo(mw ReqMiddleware) {
 }
 
 // ResponseDo is a functional option that adds a response middleware to the Fetcher.
+// Triggers the given ResMiddleware for each response after a request.
 func (f *Fetcher) ResponseDo(mw ResMiddleware) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -170,14 +172,16 @@ func (f *Fetcher) ResponseDo(mw ResMiddleware) {
 	f.responseMiddlewares = append(f.responseMiddlewares, mw)
 }
 
-// HTMLDo is a functional option that adds a "scrape" middleware to the Fetcher.
-// Triggers the given ScrapeFn for each element that matches the given HTML elementSelector.
-func (f *Fetcher) HTMLDo(elementSelector string, fn ScrapeFn) {
+// HTMLDo is a functional option that adds a HTML middleware to the Fetcher.
+// HTMLCallback is a function that is executed on every HTML element that matches the given GoQuery selector.
+//
+// SEE GoQuery documentation for more information on selectors: https://pkg.go.dev/github.com/PuerkitoBio/goquery
+func (f *Fetcher) HTMLDo(gqSelector string, fn HTMLCallback) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	f.scrapeMiddlewares = append(f.scrapeMiddlewares, ScrapeMiddleware{
-		Selector: elementSelector,
+	f.htmlMiddlewares = append(f.htmlMiddlewares, HTMLMiddleware{
+		Selector: gqSelector,
 		Function: fn,
 	})
 }
@@ -278,7 +282,7 @@ func (f *Fetcher) handleHTMLDo(res *Response) {
 		return
 	}
 
-	for _, m := range f.scrapeMiddlewares {
+	for _, m := range f.htmlMiddlewares {
 		doc.Find(m.Selector).Each(func(i int, s *goquery.Selection) {
 			for _, n := range s.Nodes {
 				el := &Element{
