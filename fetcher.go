@@ -78,7 +78,7 @@ type Fetcher struct {
 	requestMiddlewares []ReqMiddleware
 	// responseMiddlewares is a list of response middlewares that are applied to each response. Can be set with the ResponseDo functional option.
 	responseMiddlewares []ResMiddleware
-	// scrapeMiddlewares is a list of scrape middlewares that are applied to each element. Can be set with the OnScrape functional option.
+	// scrapeMiddlewares is a list of scrape middlewares that are applied to each element. Can be set with the HTMLDo functional option.
 	scrapeMiddlewares []ScrapeMiddleware
 	// ignoreRobots is a flag that determines whether robots.txt should be ignored, defaults to false. Can be set with the WithIgnoreRobots functional option.
 	ignoreRobots bool
@@ -170,8 +170,9 @@ func (f *Fetcher) ResponseDo(mw ResMiddleware) {
 	f.responseMiddlewares = append(f.responseMiddlewares, mw)
 }
 
-// OnScrape is a functional option that adds a scrape middleware
-func (f *Fetcher) OnScrape(elementSelector string, fn ScrapeFn) {
+// HTMLDo is a functional option that adds a "scrape" middleware to the Fetcher.
+// Triggers the given ScrapeFn for each element that matches the given HTML elementSelector.
+func (f *Fetcher) HTMLDo(elementSelector string, fn ScrapeFn) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -253,7 +254,7 @@ func (f *Fetcher) fetch(req *http.Request) error {
 
 	f.handleResponseDo(response)
 
-	f.handleOnScrape(response)
+	f.handleHTMLDo(response)
 
 	return nil
 }
@@ -270,7 +271,7 @@ func (f *Fetcher) handleResponseDo(res *Response) {
 	}
 }
 
-func (f *Fetcher) handleOnScrape(res *Response) {
+func (f *Fetcher) handleHTMLDo(res *Response) {
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
 		log.Printf("error parsing response body: %v", err)
