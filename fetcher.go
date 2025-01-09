@@ -76,7 +76,7 @@ type Fetcher struct {
 	store Storer
 	// requestMiddlewares is a list of request middlewares that are applied to each request. Can be set with the RequestDo functional option.
 	requestMiddlewares []ReqMiddleware
-	// responseMiddlewares is a list of response middlewares that are applied to each response. Can be set with the OnResponse functional option.
+	// responseMiddlewares is a list of response middlewares that are applied to each response. Can be set with the ResponseDo functional option.
 	responseMiddlewares []ResMiddleware
 	// scrapeMiddlewares is a list of scrape middlewares that are applied to each element. Can be set with the OnScrape functional option.
 	scrapeMiddlewares []ScrapeMiddleware
@@ -162,8 +162,8 @@ func (f *Fetcher) RequestDo(mw ReqMiddleware) {
 	f.requestMiddlewares = append(f.requestMiddlewares, mw)
 }
 
-// OnResponse is a functional option that adds a response middleware to the Fetcher.
-func (f *Fetcher) OnResponse(mw ResMiddleware) {
+// ResponseDo is a functional option that adds a response middleware to the Fetcher.
+func (f *Fetcher) ResponseDo(mw ResMiddleware) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -238,7 +238,7 @@ func (f *Fetcher) fetch(req *http.Request) error {
 	// Create a new reader from `b` for repeated reads.
 	body := bytes.NewReader(b)
 
-	// Reset the body reader for later use in `OnResponse`.
+	// Reset the body reader for later use in `ResponseDo`.
 	_, err = body.Seek(0, io.SeekStart)
 	if err != nil {
 		return err
@@ -251,7 +251,7 @@ func (f *Fetcher) fetch(req *http.Request) error {
 		Body:       body,
 	}
 
-	f.handleOnResponse(response)
+	f.handleResponseDo(response)
 
 	f.handleOnScrape(response)
 
@@ -264,7 +264,7 @@ func (f *Fetcher) handleRequestDo(req *Request) {
 	}
 }
 
-func (f *Fetcher) handleOnResponse(res *Response) {
+func (f *Fetcher) handleResponseDo(res *Response) {
 	for _, m := range f.responseMiddlewares {
 		m(res)
 	}

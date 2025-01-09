@@ -169,7 +169,7 @@ func TestFetcher_Visit(t *testing.T) {
 	defer server.Close()
 
 	RequestDoCalled := false
-	onResponseCalled := false
+	ResponseDoCalled := false
 
 	f := newTestFetcher()
 
@@ -178,8 +178,8 @@ func TestFetcher_Visit(t *testing.T) {
 		req.Headers.Set("User-Agent", "Test User Agent")
 	})
 
-	f.OnResponse(func(res *Response) {
-		onResponseCalled = true
+	f.ResponseDo(func(res *Response) {
+		ResponseDoCalled = true
 
 		assert.Equal(t, server.URL+"/", res.Request.URL.String())
 
@@ -199,8 +199,8 @@ func TestFetcher_Visit(t *testing.T) {
 		t.Error("RequestDo middleware was not called")
 	}
 
-	if !onResponseCalled {
-		t.Error("OnResponse middleware was not called")
+	if !ResponseDoCalled {
+		t.Error("ResponseDo middleware was not called")
 	}
 }
 
@@ -208,12 +208,12 @@ func TestFetcher_VisitRedirect(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
-	onResponseCalled := false
+	ResponseDoCalled := false
 
 	f := newTestFetcher()
 
-	f.OnResponse(func(res *Response) {
-		onResponseCalled = true
+	f.ResponseDo(func(res *Response) {
+		ResponseDoCalled = true
 
 		assert.Equal(t, server.URL+"/redirect", res.Request.URL.String())
 		assert.Equal(t, http.StatusSeeOther, res.StatusCode)
@@ -221,8 +221,8 @@ func TestFetcher_VisitRedirect(t *testing.T) {
 
 	f.Visit(server.URL + "/redirect")
 
-	if !onResponseCalled {
-		t.Error("OnResponse middleware was not called")
+	if !ResponseDoCalled {
+		t.Error("ResponseDo middleware was not called")
 	}
 }
 
@@ -255,12 +255,12 @@ func TestFetcher_VisitWithDisallowedURLs(t *testing.T) {
 		server.URL + "/faq",
 	}
 
-	onResponseCalled := false
+	ResponseDoCalled := false
 
 	f := newTestFetcher(WithDisallowedURLs(disallowed))
 
-	f.OnResponse(func(res *Response) {
-		onResponseCalled = true
+	f.ResponseDo(func(res *Response) {
+		ResponseDoCalled = true
 
 		assert.Equal(t, http.StatusOK, res.StatusCode)
 	})
@@ -277,8 +277,8 @@ func TestFetcher_VisitWithDisallowedURLs(t *testing.T) {
 	err = f.Visit(url)
 	assert.NoError(t, err)
 
-	if !onResponseCalled {
-		t.Error("OnResponse middleware was not called")
+	if !ResponseDoCalled {
+		t.Error("ResponseDo middleware was not called")
 	}
 }
 
@@ -291,8 +291,8 @@ func TestFetcher_VisitWithContext(t *testing.T) {
 
 	f := newTestFetcher(WithContext(ctx))
 
-	f.OnResponse(func(res *Response) {
-		t.Error("OnResponse middleware should not be called")
+	f.ResponseDo(func(res *Response) {
+		t.Error("ResponseDo middleware should not be called")
 	})
 
 	err := f.Visit(server.URL + "/heavyweight")
