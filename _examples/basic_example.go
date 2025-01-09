@@ -15,7 +15,7 @@ func main() {
 		grawlr.WithAllowedURLs(allowed),
 	)
 
-	f.OnRequest(func(req *grawlr.Request) {
+	f.RequestDo(func(req *grawlr.Request) {
 		log.Println("[MAIN] - Visiting", req.URL.String())
 	})
 

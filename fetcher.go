@@ -74,7 +74,7 @@ type Fetcher struct {
 	Context context.Context
 	// store is a Storer that is used to cache visited URLs.
 	store Storer
-	// requestMiddlewares is a list of request middlewares that are applied to each request. Can be set with the OnRequest functional option.
+	// requestMiddlewares is a list of request middlewares that are applied to each request. Can be set with the RequestDo functional option.
 	requestMiddlewares []ReqMiddleware
 	// responseMiddlewares is a list of response middlewares that are applied to each response. Can be set with the OnResponse functional option.
 	responseMiddlewares []ResMiddleware
@@ -154,8 +154,8 @@ func WithIgnoreRobots(ignore bool) Options {
 	}
 }
 
-// OnRequest is a functional option that adds a request middleware to the Fetcher.
-func (f *Fetcher) OnRequest(mw ReqMiddleware) {
+// RequestDo is a functional option that adds a request middleware to the Fetcher.
+func (f *Fetcher) RequestDo(mw ReqMiddleware) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -214,7 +214,7 @@ func (f *Fetcher) fetch(req *http.Request) error {
 		Body:    req.Body,
 	}
 
-	f.handleOnRequest(request)
+	f.handleRequestDo(request)
 
 	res, err := f.Client.Do(req)
 	if err != nil {
@@ -258,7 +258,7 @@ func (f *Fetcher) fetch(req *http.Request) error {
 	return nil
 }
 
-func (f *Fetcher) handleOnRequest(req *Request) {
+func (f *Fetcher) handleRequestDo(req *Request) {
 	for _, m := range f.requestMiddlewares {
 		m(req)
 	}

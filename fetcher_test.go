@@ -168,13 +168,13 @@ func TestFetcher_Visit(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
-	onRequestCalled := false
+	RequestDoCalled := false
 	onResponseCalled := false
 
 	f := newTestFetcher()
 
-	f.OnRequest(func(req *Request) {
-		onRequestCalled = true
+	f.RequestDo(func(req *Request) {
+		RequestDoCalled = true
 		req.Headers.Set("User-Agent", "Test User Agent")
 	})
 
@@ -195,8 +195,8 @@ func TestFetcher_Visit(t *testing.T) {
 
 	f.Visit(server.URL + "/")
 
-	if !onRequestCalled {
-		t.Error("OnRequest middleware was not called")
+	if !RequestDoCalled {
+		t.Error("RequestDo middleware was not called")
 	}
 
 	if !onResponseCalled {
