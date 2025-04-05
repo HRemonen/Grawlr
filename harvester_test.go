@@ -305,3 +305,35 @@ func TestHarvester_VisitWithContext(t *testing.T) {
 	}
 	assert.ErrorIs(t, err, context.Canceled)
 }
+
+func TestHarvester_MaximumDepth(t *testing.T) {
+	server := newTestServer()
+	defer server.Close()
+
+	h1 := newTestHarvester(WithDepthLimit(2), WithAllowRevisit(true))
+
+	reqCount := 0
+	h1.ResponseDo(func(resp *Response) {
+		reqCount++
+		if reqCount >= 10 {
+			return
+		}
+		h1.Visit(server.URL + "/") // h.Visit does not increment the depth
+	})
+
+	h1.Visit(server.URL + "/")
+	if reqCount < 10 {
+		t.Errorf("Invalid number of request: %d (expected 10) without depth limit", reqCount)
+	}
+
+	h2 := newTestHarvester(WithDepthLimit(2), WithAllowRevisit(true))
+
+	reqCount = 0
+	h2.ResponseDo(func(resp *Response) {
+		reqCount++
+		resp.Request.Visit(server.URL + "/") // resp.Request.Visit increments the depth
+	})
+
+	h2.Visit(server.URL + "/")
+	assert.Equal(t, 2, reqCount)
+}

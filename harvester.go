@@ -76,6 +76,8 @@ type Harvester struct {
 	DisallowedURLs []string
 	// DepthLimit is the maximum depth of links to follow. If set to 0, all links are followed. Can be set with the WithDepthLimit functional option.
 	DepthLimit int
+	// AllowRevisit is a flag that determines whether to allow revisiting URLs. If set to true, URLs can be revisited even if they have already been visited. Defaults to false.
+	AllowRevisit bool
 	// Context is the context used to optionally cancel ALL harvester's requests. Can be set with the WithContext functional option.
 	Context context.Context
 	// store is a Storer that is used to cache visited URLs.
@@ -101,6 +103,7 @@ func NewHarvester(options ...Options) *Harvester {
 		AllowedURLs:         []string{},
 		DisallowedURLs:      []string{},
 		DepthLimit:          0,
+		AllowRevisit:        false,
 		Context:             context.Background(),
 		store:               NewInMemoryStore(),
 		requestMiddlewares:  make([]ReqMiddleware, 0, 4),
@@ -122,6 +125,13 @@ func NewHarvester(options ...Options) *Harvester {
 func WithClient(client *http.Client) Options {
 	return func(h *Harvester) {
 		h.Client = client
+	}
+}
+
+// WithAllowRevisit is a functional option that sets the AllowRevisit flag for the Harvester.
+func WithAllowRevisit(allow bool) Options {
+	return func(h *Harvester) {
+		h.AllowRevisit = allow
 	}
 }
 
@@ -357,7 +367,7 @@ func (h *Harvester) checkRobots(parsedURL *url.URL) error {
 func (h *Harvester) checkFilters(parsedURL *url.URL) error {
 	u := parsedURL.String()
 
-	if h.store.Visited(u) {
+	if !h.AllowRevisit && h.store.Visited(u) {
 		return ErrVisitedURL(u)
 	}
 
@@ -369,7 +379,7 @@ func (h *Harvester) checkFilters(parsedURL *url.URL) error {
 }
 
 func (h *Harvester) checkDepth(depth int) error {
-	if h.DepthLimit != 0 && depth > h.DepthLimit {
+	if h.DepthLimit != 0 && depth >= h.DepthLimit {
 		return ErrDepthLimitExceeded(depth, h.DepthLimit)
 	}
 
