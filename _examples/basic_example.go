@@ -19,7 +19,7 @@ func main() {
 		log.Println("[MAIN] - Visiting", req.URL.String())
 	})
 
-	f.HTMLDo("a[href]", func(el *grawlr.Element) {
+	f.HtmlDo("a[href]", func(el *grawlr.Element) {
 		link := el.Attribute("href")
 
 		log.Printf("[MAIN] - Found link %q -> %s", el.Text, link)

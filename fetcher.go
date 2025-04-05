@@ -55,10 +55,10 @@ type ReqMiddleware func(req *Request)
 type ResMiddleware func(res *Response)
 
 type (
-	HTMLCallback   func(el *HtmlElement)
-	HTMLMiddleware struct {
+	HtmlCallback   func(el *HtmlElement)
+	HtmlMiddleware struct {
 		Selector string
-		Function HTMLCallback
+		Function HtmlCallback
 	}
 )
 
@@ -78,8 +78,8 @@ type Fetcher struct {
 	requestMiddlewares []ReqMiddleware
 	// responseMiddlewares is a list of response middlewares that are applied to each response. Can be set with the ResponseDo functional option.
 	responseMiddlewares []ResMiddleware
-	// htmlMiddlewares is a list of scrape middlewares that are applied to each HTML HtmlElement. Can be set with the HTMLDo functional option.
-	htmlMiddlewares []HTMLMiddleware
+	// htmlMiddlewares is a list of scrape middlewares that are applied to each Html HtmlElement. Can be set with the HtmlDo functional option.
+	htmlMiddlewares []HtmlMiddleware
 	// ignoreRobots is a flag that determines whether robots.txt should be ignored, defaults to false. Can be set with the WithIgnoreRobots functional option.
 	ignoreRobots bool
 	// robotsMap is a map of hostnames to robotstxt.RobotsData, which is used to cache robots.txt files.
@@ -98,7 +98,7 @@ func NewFetcher(options ...Options) *Fetcher {
 		store:               NewInMemoryStore(),
 		requestMiddlewares:  make([]ReqMiddleware, 0, 4),
 		responseMiddlewares: make([]ResMiddleware, 0, 4),
-		htmlMiddlewares:     make([]HTMLMiddleware, 0, 4),
+		htmlMiddlewares:     make([]HtmlMiddleware, 0, 4),
 		ignoreRobots:        false,
 		robotsMap:           make(map[string]*robotstxt.RobotsData),
 		mu:                  sync.RWMutex{},
@@ -172,15 +172,15 @@ func (f *Fetcher) ResponseDo(mw ResMiddleware) {
 	f.responseMiddlewares = append(f.responseMiddlewares, mw)
 }
 
-// HTMLDo is a functional option that adds a HTML middleware to the Fetcher.
-// HTMLCallback is a function that is executed on every HTML HtmlElement that matches the given GoQuery selector.
+// HtmlDo is a functional option that adds a Html middleware to the Fetcher.
+// HtmlCallback is a function that is executed on every Html HtmlElement that matches the given GoQuery selector.
 //
 // SEE GoQuery documentation for more information on selectors: https://pkg.go.dev/github.com/PuerkitoBio/goquery
-func (f *Fetcher) HTMLDo(gqSelector string, fn HTMLCallback) {
+func (f *Fetcher) HtmlDo(gqSelector string, fn HtmlCallback) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	f.htmlMiddlewares = append(f.htmlMiddlewares, HTMLMiddleware{
+	f.htmlMiddlewares = append(f.htmlMiddlewares, HtmlMiddleware{
 		Selector: gqSelector,
 		Function: fn,
 	})
@@ -258,7 +258,7 @@ func (f *Fetcher) fetch(req *http.Request) error {
 
 	f.handleResponseDo(response)
 
-	f.handleHTMLDo(response)
+	f.handleHtmlDo(response)
 
 	return nil
 }
@@ -275,7 +275,7 @@ func (f *Fetcher) handleResponseDo(res *Response) {
 	}
 }
 
-func (f *Fetcher) handleHTMLDo(res *Response) {
+func (f *Fetcher) handleHtmlDo(res *Response) {
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
 		log.Printf("error parsing response body: %v", err)
