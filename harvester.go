@@ -45,8 +45,8 @@ var (
 	}
 )
 
-// Options is a type for functional options that can be used to configure a Fetcher.
-type Options func(f *Fetcher)
+// Options is a type for functional options that can be used to configure a Harvester.
+type Options func(h *Harvester)
 
 // ReqMiddleware is a type for request middlewares that can be used to modify a Request before it is fetched.
 type ReqMiddleware func(req *Request)
@@ -62,15 +62,15 @@ type (
 	}
 )
 
-// Fetcher is a Fetcher that uses an http.Client to fetch web pages.
-type Fetcher struct {
+// Harvester is a Harvester that uses an http.Client to fetch web pages.
+type Harvester struct {
 	// Client is the http.Client used to fetch web pages.
 	Client *http.Client
 	// AllowedURLs is a list of URLs that are allowed to be fetched. Can be set with the WithAllowedURLs functional option.
 	AllowedURLs []string
 	// DisallowedURLs is a list of URLs that are disallowed to be fetched. Can be set with the WithDisallowedURLs functional option.
 	DisallowedURLs []string
-	// Context is the context used to optionally cancel ALL fetcher's requests. Can be set with the WithContext functional option.
+	// Context is the context used to optionally cancel ALL harvester's requests. Can be set with the WithContext functional option.
 	Context context.Context
 	// store is a Storer that is used to cache visited URLs.
 	store Storer
@@ -88,9 +88,9 @@ type Fetcher struct {
 	mu sync.RWMutex
 }
 
-// NewFetcher creates a new Fetcher with the given http.Client.
-func NewFetcher(options ...Options) *Fetcher {
-	f := &Fetcher{
+// NewHarvester creates a new Harvester with the given http.Client.
+func NewHarvester(options ...Options) *Harvester {
+	h := &Harvester{
 		Client:              http.DefaultClient,
 		AllowedURLs:         []string{},
 		DisallowedURLs:      []string{},
@@ -105,82 +105,82 @@ func NewFetcher(options ...Options) *Fetcher {
 	}
 
 	for _, option := range options {
-		option(f)
+		option(h)
 	}
 
-	return f
+	return h
 }
 
-// WithClient is a functional option that sets the http.Client for the Fetcher.
+// WithClient is a functional option that sets the http.Client for the Harvester.
 func WithClient(client *http.Client) Options {
-	return func(f *Fetcher) {
-		f.Client = client
+	return func(h *Harvester) {
+		h.Client = client
 	}
 }
 
-// WithAllowedURLs is a functional option that sets the allowed URLs for the Fetcher.
+// WithAllowedURLs is a functional option that sets the allowed URLs for the Harvester.
 func WithAllowedURLs(urls []string) Options {
-	return func(f *Fetcher) {
-		f.AllowedURLs = urls
+	return func(h *Harvester) {
+		h.AllowedURLs = urls
 	}
 }
 
-// WithDisallowedURLs is a functional option that sets the disallowed URLs for the Fetcher.
+// WithDisallowedURLs is a functional option that sets the disallowed URLs for the Harvester.
 func WithDisallowedURLs(urls []string) Options {
-	return func(f *Fetcher) {
-		f.DisallowedURLs = urls
+	return func(h *Harvester) {
+		h.DisallowedURLs = urls
 	}
 }
 
-// WithContext is a functional option that sets the context for the Fetcher.
+// WithContext is a functional option that sets the context for the Harvester.
 func WithContext(ctx context.Context) Options {
-	return func(f *Fetcher) {
-		f.Context = ctx
+	return func(h *Harvester) {
+		h.Context = ctx
 	}
 }
 
-// WithStore is a functional option that sets the Storer for the Fetcher.
+// WithStore is a functional option that sets the Storer for the Harvester.
 // See the Storer interface in store.go for more information.
 func WithStore(store Storer) Options {
-	return func(f *Fetcher) {
-		f.store = store
+	return func(h *Harvester) {
+		h.store = store
 	}
 }
 
-// WithIgnoreRobots is a functional option that sets the ignoreRobots flag for the Fetcher.
+// WithIgnoreRobots is a functional option that sets the ignoreRobots flag for the Harvester.
 func WithIgnoreRobots(ignore bool) Options {
-	return func(f *Fetcher) {
-		f.ignoreRobots = ignore
+	return func(h *Harvester) {
+		h.ignoreRobots = ignore
 	}
 }
 
-// RequestDo is a functional option that adds a request middleware to the Fetcher.
+// RequestDo is a functional option that adds a request middleware to the Harvester.
 // Triggers the given ReqMiddleware for each request before it is fetched.
-func (f *Fetcher) RequestDo(mw ReqMiddleware) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
+func (h *Harvester) RequestDo(mw ReqMiddleware) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
 
-	f.requestMiddlewares = append(f.requestMiddlewares, mw)
+	h.requestMiddlewares = append(h.requestMiddlewares, mw)
 }
 
-// ResponseDo is a functional option that adds a response middleware to the Fetcher.
+// ResponseDo is a functional option that adds a response middleware to the Harvester.
 // Triggers the given ResMiddleware for each response after a request.
-func (f *Fetcher) ResponseDo(mw ResMiddleware) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
+func (h *Harvester) ResponseDo(mw ResMiddleware) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
 
-	f.responseMiddlewares = append(f.responseMiddlewares, mw)
+	h.responseMiddlewares = append(h.responseMiddlewares, mw)
 }
 
-// HtmlDo is a functional option that adds a Html middleware to the Fetcher.
+// HtmlDo is a functional option that adds a Html middleware to the Harvester.
 // HtmlCallback is a function that is executed on every Html HtmlElement that matches the given GoQuery selector.
 //
 // SEE GoQuery documentation for more information on selectors: https://pkg.go.dev/github.com/PuerkitoBio/goquery
-func (f *Fetcher) HtmlDo(gqSelector string, fn HtmlCallback) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
+func (h *Harvester) HtmlDo(gqSelector string, fn HtmlCallback) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
 
-	f.htmlMiddlewares = append(f.htmlMiddlewares, HtmlMiddleware{
+	h.htmlMiddlewares = append(h.htmlMiddlewares, HtmlMiddleware{
 		Selector: gqSelector,
 		Function: fn,
 	})
@@ -188,29 +188,29 @@ func (f *Fetcher) HtmlDo(gqSelector string, fn HtmlCallback) {
 
 // Visit requests the web page at the given URL if it is allowed to be fetched.
 // It returns a Response with the response data or an error if the request fails.
-func (f *Fetcher) Visit(u string) error {
+func (h *Harvester) Visit(u string) error {
 	parsedURL, err := url.Parse(u)
 	if err != nil {
 		return err
 	}
 
-	if err := f.checkRobots(parsedURL); err != nil {
+	if err := h.checkRobots(parsedURL); err != nil {
 		return err
 	}
 
-	if err := f.checkFilters(parsedURL); err != nil {
+	if err := h.checkFilters(parsedURL); err != nil {
 		return err
 	}
 
-	req, err := http.NewRequestWithContext(f.Context, http.MethodGet, parsedURL.String(), http.NoBody)
+	req, err := http.NewRequestWithContext(h.Context, http.MethodGet, parsedURL.String(), http.NoBody)
 	if err != nil {
 		return err
 	}
 
-	return f.fetch(req)
+	return h.fetch(req)
 }
 
-func (f *Fetcher) fetch(req *http.Request) error {
+func (h *Harvester) fetch(req *http.Request) error {
 	request := &Request{
 		URL:     req.URL,
 		Headers: &req.Header,
@@ -219,14 +219,14 @@ func (f *Fetcher) fetch(req *http.Request) error {
 		Body:    req.Body,
 	}
 
-	f.handleRequestDo(request)
+	h.handleRequestDo(request)
 
-	res, err := f.Client.Do(req)
+	res, err := h.Client.Do(req)
 	if err != nil {
 		return err
 	}
 
-	f.store.Visit(req.URL.String())
+	h.store.Visit(req.URL.String())
 
 	defer func() {
 		if err := res.Body.Close(); err != nil {
@@ -256,33 +256,33 @@ func (f *Fetcher) fetch(req *http.Request) error {
 		Body:       body,
 	}
 
-	f.handleResponseDo(response)
+	h.handleResponseDo(response)
 
-	f.handleHtmlDo(response)
+	h.handleHtmlDo(response)
 
 	return nil
 }
 
-func (f *Fetcher) handleRequestDo(req *Request) {
-	for _, m := range f.requestMiddlewares {
+func (h *Harvester) handleRequestDo(req *Request) {
+	for _, m := range h.requestMiddlewares {
 		m(req)
 	}
 }
 
-func (f *Fetcher) handleResponseDo(res *Response) {
-	for _, m := range f.responseMiddlewares {
+func (h *Harvester) handleResponseDo(res *Response) {
+	for _, m := range h.responseMiddlewares {
 		m(res)
 	}
 }
 
-func (f *Fetcher) handleHtmlDo(res *Response) {
+func (h *Harvester) handleHtmlDo(res *Response) {
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
 		log.Printf("error parsing response body: %v", err)
 		return
 	}
 
-	for _, m := range f.htmlMiddlewares {
+	for _, m := range h.htmlMiddlewares {
 		doc.Find(m.Selector).Each(func(i int, s *goquery.Selection) {
 			for _, n := range s.Nodes {
 				el := &HtmlElement{
@@ -299,18 +299,18 @@ func (f *Fetcher) handleHtmlDo(res *Response) {
 	}
 }
 
-func (f *Fetcher) checkRobots(parsedURL *url.URL) error {
-	if f.ignoreRobots {
+func (h *Harvester) checkRobots(parsedURL *url.URL) error {
+	if h.ignoreRobots {
 		return nil
 	}
 
-	f.mu.Lock()
-	robot, ok := f.robotsMap[parsedURL.Host]
-	f.mu.Unlock()
+	h.mu.Lock()
+	robot, ok := h.robotsMap[parsedURL.Host]
+	h.mu.Unlock()
 
 	if !ok {
 		robotURL := parsedURL.Scheme + "://" + parsedURL.Host + "/robots.txt"
-		res, err := f.Client.Get(robotURL) //nolint: noctx // we don't need a context here
+		res, err := h.Client.Get(robotURL) //nolint: noctx // we don't need a context here
 		if err != nil {
 			return err
 		}
@@ -322,9 +322,9 @@ func (f *Fetcher) checkRobots(parsedURL *url.URL) error {
 			return err
 		}
 
-		f.mu.Lock()
-		f.robotsMap[parsedURL.Host] = robot
-		f.mu.Unlock()
+		h.mu.Lock()
+		h.robotsMap[parsedURL.Host] = robot
+		h.mu.Unlock()
 	}
 
 	if !robot.TestAgent(parsedURL.Path, "Grawlr") {
@@ -334,14 +334,14 @@ func (f *Fetcher) checkRobots(parsedURL *url.URL) error {
 	return nil
 }
 
-func (f *Fetcher) checkFilters(parsedURL *url.URL) error {
+func (h *Harvester) checkFilters(parsedURL *url.URL) error {
 	u := parsedURL.String()
 
-	if f.store.Visited(u) {
+	if h.store.Visited(u) {
 		return ErrVisitedURL(u)
 	}
 
-	if !f.isURLAllowed(u) {
+	if !h.isURLAllowed(u) {
 		return ErrForbiddenURL(u)
 	}
 
@@ -349,18 +349,18 @@ func (f *Fetcher) checkFilters(parsedURL *url.URL) error {
 }
 
 // isURLAllowed checks if the given URL is allowed to be fetched.
-func (f *Fetcher) isURLAllowed(u string) bool {
-	for _, disallowed := range f.DisallowedURLs {
+func (h *Harvester) isURLAllowed(u string) bool {
+	for _, disallowed := range h.DisallowedURLs {
 		if strings.HasPrefix(u, disallowed) {
 			return false
 		}
 	}
 
-	if len(f.AllowedURLs) == 0 {
+	if len(h.AllowedURLs) == 0 {
 		return true
 	}
 
-	for _, allowed := range f.AllowedURLs {
+	for _, allowed := range h.AllowedURLs {
 		if strings.HasPrefix(u, allowed) {
 			return true
 		}

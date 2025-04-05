@@ -11,28 +11,28 @@ func main() {
 		"https://www.hremonen.com",
 	}
 
-	f := grawlr.NewFetcher(
+	h := grawlr.NewHarvester(
 		grawlr.WithAllowedURLs(allowed),
 	)
 
-	f.RequestDo(func(req *grawlr.Request) {
+	h.RequestDo(func(req *grawlr.Request) {
 		log.Println("[MAIN] - Visiting", req.URL.String())
 	})
 
-	f.HtmlDo("a[href]", func(el *grawlr.Element) {
+	h.HtmlDo("a[href]", func(el *grawlr.Element) {
 		link := el.Attribute("href")
 
 		log.Printf("[MAIN] - Found link %q -> %s", el.Text, link)
 
 		absURL := el.Request.GetAbsoluteURL(link)
 
-		err := f.Visit(absURL)
+		err := h.Visit(absURL)
 		if err != nil {
 			log.Println("[MAIN] - ", err)
 		}
 	})
 
-	err := f.Visit("https://www.hremonen.com")
+	err := h.Visit("https://www.hremonen.com")
 	if err != nil {
 		log.Println("[MAIN] - Error visiting start URL", err)
 	}

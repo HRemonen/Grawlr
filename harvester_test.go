@@ -151,7 +151,7 @@ func newTestServer() *httptest.Server {
 	return server
 }
 
-func newTestFetcher(options ...Options) *Fetcher {
+func newTestHarvester(options ...Options) *Harvester {
 	client := &http.Client{
 		Timeout: time.Second * 10,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -159,19 +159,19 @@ func newTestFetcher(options ...Options) *Fetcher {
 		},
 	}
 
-	return NewFetcher(
+	return NewHarvester(
 		append(options, WithClient(client))...,
 	)
 }
 
-func TestFetcher_Visit(t *testing.T) {
+func TestHarvester_Visit(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
 	RequestDoCalled := false
 	ResponseDoCalled := false
 
-	f := newTestFetcher()
+	f := newTestHarvester()
 
 	f.RequestDo(func(req *Request) {
 		RequestDoCalled = true
@@ -204,13 +204,13 @@ func TestFetcher_Visit(t *testing.T) {
 	}
 }
 
-func TestFetcher_VisitRedirect(t *testing.T) {
+func TestHarvester_VisitRedirect(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
 	ResponseDoCalled := false
 
-	f := newTestFetcher()
+	f := newTestHarvester()
 
 	f.ResponseDo(func(res *Response) {
 		ResponseDoCalled = true
@@ -226,7 +226,7 @@ func TestFetcher_VisitRedirect(t *testing.T) {
 	}
 }
 
-func TestFetcher_VisitWithAllowedURLs(t *testing.T) {
+func TestHarvester_VisitWithAllowedURLs(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
@@ -235,7 +235,7 @@ func TestFetcher_VisitWithAllowedURLs(t *testing.T) {
 		server.URL + "/faq",
 	}
 
-	f := newTestFetcher(WithAllowedURLs(allowed), WithIgnoreRobots(true))
+	f := newTestHarvester(WithAllowedURLs(allowed), WithIgnoreRobots(true))
 
 	url := server.URL + "/"
 	err := f.Visit(url)
@@ -246,7 +246,7 @@ func TestFetcher_VisitWithAllowedURLs(t *testing.T) {
 	assert.EqualError(t, err, fmt.Sprintf("URL %s is forbidden", url))
 }
 
-func TestFetcher_VisitWithDisallowedURLs(t *testing.T) {
+func TestHarvester_VisitWithDisallowedURLs(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
@@ -257,7 +257,7 @@ func TestFetcher_VisitWithDisallowedURLs(t *testing.T) {
 
 	ResponseDoCalled := false
 
-	f := newTestFetcher(WithDisallowedURLs(disallowed))
+	f := newTestHarvester(WithDisallowedURLs(disallowed))
 
 	f.ResponseDo(func(res *Response) {
 		ResponseDoCalled = true
@@ -282,14 +282,14 @@ func TestFetcher_VisitWithDisallowedURLs(t *testing.T) {
 	}
 }
 
-func TestFetcher_VisitWithContext(t *testing.T) {
+func TestHarvester_VisitWithContext(t *testing.T) {
 	server := newTestServer()
 	defer server.Close()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	time.AfterFunc(time.Second, cancel)
 
-	f := newTestFetcher(WithContext(ctx))
+	f := newTestHarvester(WithContext(ctx))
 
 	f.ResponseDo(func(res *Response) {
 		t.Error("ResponseDo middleware should not be called")

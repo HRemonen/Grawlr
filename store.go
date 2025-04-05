@@ -18,7 +18,7 @@ package grawlr
 import "sync"
 
 // Storer is an interface for a cache that storer
-// fetcher's internal data.
+// Harvester's internal data.
 type Storer interface {
 	// Visited returns true if the URL has been visited.
 	Visited(url string) bool

@@ -20,7 +20,7 @@ import (
 	"net/http"
 )
 
-// Response is a representation of the response from a Fetcher.
+// Response is a representation of the response from a Harvester.
 type Response struct {
 	StatusCode int
 	Headers    *http.Header
