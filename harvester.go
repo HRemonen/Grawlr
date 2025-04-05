@@ -100,6 +100,7 @@ func NewHarvester(options ...Options) *Harvester {
 		Client:              http.DefaultClient,
 		AllowedURLs:         []string{},
 		DisallowedURLs:      []string{},
+		DepthLimit:          0,
 		Context:             context.Background(),
 		store:               NewInMemoryStore(),
 		requestMiddlewares:  make([]ReqMiddleware, 0, 4),
