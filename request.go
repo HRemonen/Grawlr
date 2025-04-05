@@ -24,12 +24,14 @@ import (
 )
 
 type Request struct {
-	URL     *url.URL
-	BaseURL *url.URL
-	Headers *http.Header
-	Host    string
-	Method  string
-	Body    io.Reader
+	URL       *url.URL
+	BaseURL   *url.URL
+	Headers   *http.Header
+	Host      string
+	Method    string
+	Body      io.Reader
+	Depth     int
+	harvester *Harvester
 }
 
 // GetAbsoluteURL returns the absolute URL for a link found on the page.
@@ -52,4 +54,10 @@ func (r *Request) GetAbsoluteURL(link string) string {
 
 	absoluteURL := base.ResolveReference(href)
 	return absoluteURL.String()
+}
+
+// Visit continues the crawling process by visiting a new URL
+// preserving the current request context.
+func (r *Request) Visit(u string) error {
+	return r.harvester.fetch(u, r.Method, r.Depth+1)
 }

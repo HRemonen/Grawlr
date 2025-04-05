@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	grawlr "github.com/HRemonen/Grawlr"
 	"github.com/hremonen/grawlr"
 )
 
@@ -19,7 +20,7 @@ func main() {
 		log.Println("[MAIN] - Visiting", req.URL.String())
 	})
 
-	h.HtmlDo("a[href]", func(el *grawlr.Element) {
+	h.HtmlDo("a[href]", func(el *grawlr.HtmlElement) {
 		link := el.Attribute("href")
 
 		log.Printf("[MAIN] - Found link %q -> %s", el.Text, link)

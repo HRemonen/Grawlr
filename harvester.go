@@ -43,6 +43,10 @@ var (
 	ErrVisitedURL = func(u string) error {
 		return fmt.Errorf("URL %s has already been visited", u)
 	}
+	// ErrDepthLimitExceeded is returned when the maximum depth limit is exceeded.
+	ErrDepthLimitExceeded = func(depth, limit int) error {
+		return fmt.Errorf("depth limit exceeded: %d > %d", depth, limit)
+	}
 )
 
 // Options is a type for functional options that can be used to configure a Harvester.
@@ -70,6 +74,8 @@ type Harvester struct {
 	AllowedURLs []string
 	// DisallowedURLs is a list of URLs that are disallowed to be fetched. Can be set with the WithDisallowedURLs functional option.
 	DisallowedURLs []string
+	// DepthLimit is the maximum depth of links to follow. If set to 0, all links are followed. Can be set with the WithDepthLimit functional option.
+	DepthLimit int
 	// Context is the context used to optionally cancel ALL harvester's requests. Can be set with the WithContext functional option.
 	Context context.Context
 	// store is a Storer that is used to cache visited URLs.
@@ -132,6 +138,13 @@ func WithDisallowedURLs(urls []string) Options {
 	}
 }
 
+// WithDepthLimit is a functional option that sets the maximum depth for the Harvester.
+func WithDepthLimit(depth int) Options {
+	return func(h *Harvester) {
+		h.DepthLimit = depth
+	}
+}
+
 // WithContext is a functional option that sets the context for the Harvester.
 func WithContext(ctx context.Context) Options {
 	return func(h *Harvester) {
@@ -189,6 +202,10 @@ func (h *Harvester) HtmlDo(gqSelector string, fn HtmlCallback) {
 // Visit requests the web page at the given URL if it is allowed to be fetched.
 // It returns a Response with the response data or an error if the request fails.
 func (h *Harvester) Visit(u string) error {
+	return h.fetch(u, http.MethodGet, 0)
+}
+
+func (h *Harvester) fetch(u, method string, depth int) error {
 	parsedURL, err := url.Parse(u)
 	if err != nil {
 		return err
@@ -202,21 +219,23 @@ func (h *Harvester) Visit(u string) error {
 		return err
 	}
 
-	req, err := http.NewRequestWithContext(h.Context, http.MethodGet, parsedURL.String(), http.NoBody)
+	if err := h.checkDepth(depth); err != nil {
+		return err
+	}
+
+	req, err := http.NewRequestWithContext(h.Context, method, parsedURL.String(), http.NoBody)
 	if err != nil {
 		return err
 	}
 
-	return h.fetch(req)
-}
-
-func (h *Harvester) fetch(req *http.Request) error {
 	request := &Request{
-		URL:     req.URL,
-		Headers: &req.Header,
-		Host:    req.URL.Host,
-		Method:  req.Method,
-		Body:    req.Body,
+		URL:       req.URL,
+		Headers:   &req.Header,
+		Host:      req.URL.Host,
+		Method:    req.Method,
+		Body:      req.Body,
+		Depth:     depth,
+		harvester: h,
 	}
 
 	h.handleRequestDo(request)
@@ -343,6 +362,14 @@ func (h *Harvester) checkFilters(parsedURL *url.URL) error {
 
 	if !h.isURLAllowed(u) {
 		return ErrForbiddenURL(u)
+	}
+
+	return nil
+}
+
+func (h *Harvester) checkDepth(depth int) error {
+	if h.DepthLimit != 0 && depth > h.DepthLimit {
+		return ErrDepthLimitExceeded(depth, h.DepthLimit)
 	}
 
 	return nil
