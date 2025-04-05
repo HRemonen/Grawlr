@@ -1,15 +1,15 @@
 linters-settings:
   funlen:
-    lines: 60
-    statements: 40
+    lines: 100
+    statements: 25
   gocyclo:
-    min-complexity: 30
+    min-complexity: 15
   misspell:
     locale: US
   nolintlint:
-    allow-unused: false # report any unused nolint directives
-    require-explanation: true # require an explanation for nolint directives
-    require-specific: false # don't require nolint directives to be specific about which linter is being skipped
+    allow-unused: false
+    require-explanation: true
+    require-specific: false
   gocritic:
     enable-all: true
     disabled-checks:
@@ -17,7 +17,6 @@ linters-settings:
       - whyNoLint
 
 linters:
-  disable-all: true
   enable:
     - bodyclose
     - dogsled
@@ -46,13 +45,14 @@ linters:
     - whitespace
 
 issues:
-  # enable issues excluded by default
   exclude-use-default: false
   exclude-rules:
     - linters:
         - stylecheck
-      text:
-        "ST1000"
+      text: "ST1000"
+    - linters:
+        - stylecheck
+      text: "ST1003" # Added rule to disable ST1003
     - path: main.go
       linters:
         - gochecknoglobals
