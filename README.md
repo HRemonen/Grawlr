@@ -34,7 +34,7 @@ This will install any necessary packages for the project.
 
 ## Usage
 
-Currently, the project does not actually expose any function or interface to use... TBD
+For detailed usage instructions, refer to the [Usage Documentation](docs/usage.md).
 
 ## Testing
 
