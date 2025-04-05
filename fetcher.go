@@ -55,7 +55,7 @@ type ReqMiddleware func(req *Request)
 type ResMiddleware func(res *Response)
 
 type (
-	HTMLCallback   func(el *Element)
+	HTMLCallback   func(el *HtmlElement)
 	HTMLMiddleware struct {
 		Selector string
 		Function HTMLCallback
@@ -78,7 +78,7 @@ type Fetcher struct {
 	requestMiddlewares []ReqMiddleware
 	// responseMiddlewares is a list of response middlewares that are applied to each response. Can be set with the ResponseDo functional option.
 	responseMiddlewares []ResMiddleware
-	// htmlMiddlewares is a list of scrape middlewares that are applied to each HTML element. Can be set with the HTMLDo functional option.
+	// htmlMiddlewares is a list of scrape middlewares that are applied to each HTML HtmlElement. Can be set with the HTMLDo functional option.
 	htmlMiddlewares []HTMLMiddleware
 	// ignoreRobots is a flag that determines whether robots.txt should be ignored, defaults to false. Can be set with the WithIgnoreRobots functional option.
 	ignoreRobots bool
@@ -173,7 +173,7 @@ func (f *Fetcher) ResponseDo(mw ResMiddleware) {
 }
 
 // HTMLDo is a functional option that adds a HTML middleware to the Fetcher.
-// HTMLCallback is a function that is executed on every HTML element that matches the given GoQuery selector.
+// HTMLCallback is a function that is executed on every HTML HtmlElement that matches the given GoQuery selector.
 //
 // SEE GoQuery documentation for more information on selectors: https://pkg.go.dev/github.com/PuerkitoBio/goquery
 func (f *Fetcher) HTMLDo(gqSelector string, fn HTMLCallback) {
@@ -285,7 +285,7 @@ func (f *Fetcher) handleHTMLDo(res *Response) {
 	for _, m := range f.htmlMiddlewares {
 		doc.Find(m.Selector).Each(func(i int, s *goquery.Selection) {
 			for _, n := range s.Nodes {
-				el := &Element{
+				el := &HtmlElement{
 					attributes: n.Attr,
 					Text:       s.Text(),
 					Request:    res.Request,

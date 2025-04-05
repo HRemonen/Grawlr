@@ -20,8 +20,8 @@ import (
 	"golang.org/x/net/html"
 )
 
-// Element is a representation of an HTML element.
-type Element struct {
+// HtmlElement is a representation of an HTML element.
+type HtmlElement struct {
 	Text       string
 	attributes []html.Attribute
 	Request    *Request
@@ -30,7 +30,7 @@ type Element struct {
 }
 
 // Attribute returns the value of the attribute with the given key.
-func (e *Element) Attribute(key string) string {
+func (e *HtmlElement) Attribute(key string) string {
 	for _, attr := range e.attributes {
 		if attr.Key == key {
 			return attr.Val
