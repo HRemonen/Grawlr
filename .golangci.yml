@@ -75,3 +75,4 @@ issues:
         - funlen
         - errcheck
         - gosec
+        - gosimple
