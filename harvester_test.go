@@ -335,5 +335,56 @@ func TestHarvester_MaximumDepth(t *testing.T) {
 	})
 
 	h2.Visit(server.URL + "/")
-	assert.Equal(t, 2, reqCount)
+	if reqCount != 2 {
+		t.Errorf("Invalid number of request: %d (expected 2) with depth limit", reqCount)
+	}
+
+	h3 := h1.Clone()
+
+	reqCount = 0
+	h3.ResponseDo(func(resp *Response) {
+		reqCount++
+		resp.Request.Visit(server.URL + "/") // resp.Request.Visit increments the depth
+	})
+
+	h3.Visit(server.URL + "/")
+	if reqCount != 2 {
+		t.Errorf("Invalid number of request: %d (expected 2) with depth limit", reqCount)
+	}
+}
+
+func TestHarvester_Clone(t *testing.T) {
+	server := newTestServer()
+	defer server.Close()
+
+	h1 := newTestHarvester(WithDepthLimit(2), WithAllowRevisit(true))
+
+	h1.RequestDo(func(req *Request) {
+		req.Headers.Set("User-Agent", "Test User Agent")
+	})
+
+	h1.HtmlDo("a[href]", func(el *HtmlElement) {
+		link := el.Attribute("href")
+		absURL := el.Request.GetAbsoluteURL(link)
+		err := el.Request.Visit(absURL)
+		if err != nil {
+			fmt.Println("Error visiting URL:", err)
+		}
+	})
+
+	h1.ResponseDo(func(res *Response) {
+		return
+	})
+
+	h2 := h1.Clone()
+
+	assert.Equal(t, h1.DepthLimit, h2.DepthLimit)
+	assert.Equal(t, h1.AllowRevisit, h2.AllowRevisit)
+	assert.Equal(t, h1.ignoreRobots, h2.ignoreRobots)
+	assert.Equal(t, h1.AllowedURLs, h2.AllowedURLs)
+	assert.Equal(t, h1.DisallowedURLs, h2.DisallowedURLs)
+
+	assert.NotEqual(t, h1.requestMiddlewares, h2.requestMiddlewares)
+	assert.NotEqual(t, h1.responseMiddlewares, h2.responseMiddlewares)
+	assert.NotEqual(t, h1.htmlMiddlewares, h2.htmlMiddlewares)
 }

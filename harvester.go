@@ -121,6 +121,29 @@ func NewHarvester(options ...Options) *Harvester {
 	return h
 }
 
+// Clone returns a new Harvester with the same options as the original
+// except for the middleware functions.
+func (h *Harvester) Clone() *Harvester {
+	// Create a new Harvester with the same options as the original
+	clone := &Harvester{
+		Client:              h.Client,
+		AllowedURLs:         h.AllowedURLs,
+		DisallowedURLs:      h.DisallowedURLs,
+		DepthLimit:          h.DepthLimit,
+		AllowRevisit:        h.AllowRevisit,
+		Context:             h.Context,
+		store:               h.store,
+		requestMiddlewares:  make([]ReqMiddleware, 0, 4),
+		responseMiddlewares: make([]ResMiddleware, 0, 4),
+		htmlMiddlewares:     make([]HtmlMiddleware, 0, 4),
+		ignoreRobots:        h.ignoreRobots,
+		robotsMap:           h.robotsMap,
+		mu:                  sync.RWMutex{},
+	}
+
+	return clone
+}
+
 // WithClient is a functional option that sets the http.Client for the Harvester.
 func WithClient(client *http.Client) Options {
 	return func(h *Harvester) {
