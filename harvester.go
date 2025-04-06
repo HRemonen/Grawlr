@@ -368,7 +368,7 @@ func (h *Harvester) checkRobots(parsedURL *url.URL) error {
 			return err
 		}
 
-		defer res.Body.Close() //nolint: errcheck // because we don't care about the error here
+		defer res.Body.Close()
 
 		robot, err = robotstxt.FromResponse(res)
 		if err != nil {

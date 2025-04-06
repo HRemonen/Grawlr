@@ -1,22 +1,22 @@
-linters-settings:
-  funlen:
-    lines: 100
-    statements: 40
-  gocyclo:
-    min-complexity: 15
-  misspell:
-    locale: US
-  nolintlint:
-    allow-unused: false
-    require-explanation: true
-    require-specific: false
-  gocritic:
-    enable-all: true
-    disabled-checks:
-      - ifElseChain
-      - whyNoLint
-
+version: "2"
 linters:
+  settings:
+    funlen:
+      lines: 100
+      statements: 40
+    gocyclo:
+      min-complexity: 15
+    misspell:
+      locale: US
+    nolintlint:
+      allow-unused: false
+      require-explanation: true
+      require-specific: false
+    gocritic:
+      enable-all: true
+      disabled-checks:
+        - ifElseChain
+        - whyNoLint
   enable:
     - bodyclose
     - dogsled
@@ -26,11 +26,9 @@ linters:
     - gocritic
     - goconst
     - gocyclo
-    - gofumpt
     - rowserrcheck
     - goprintffuncname
     - gosec
-    - gosimple
     - govet
     - ineffassign
     - misspell
@@ -38,41 +36,33 @@ linters:
     - noctx
     - nolintlint
     - staticcheck
-    - stylecheck
     - sqlclosecheck
-    - typecheck
     - unconvert
     - whitespace
 
-issues:
-  exclude-use-default: false
-  exclude-rules:
-    - linters:
-        - stylecheck
-      text: "ST1000"
-    - linters:
-        - stylecheck
-      text: "ST1003" # Added rule to disable ST1003
-    - path: main.go
-      linters:
-        - gochecknoglobals
-        - goconst
-        - gocognit
-        - gocritic
-        - godox
-        - revive
-        - funlen
-        - errcheck
-        - gosec
-    - path: (.+)_test.go
-      linters:
-        - gochecknoglobals
-        - goconst
-        - gocognit
-        - gocritic
-        - godox
-        - revive
-        - funlen
-        - errcheck
-        - gosec
-        - gosimple
+  exclusions:
+    rules:
+      - path: main.go
+        linters:
+          - gochecknoglobals
+          - goconst
+          - gocognit
+          - gocritic
+          - godox
+          - revive
+          - funlen
+          - errcheck
+          - gosec
+      - path: (.+)_test.go
+        linters:
+          - gochecknoglobals
+          - goconst
+          - gocognit
+          - gocritic
+          - godox
+          - revive
+          - funlen
+          - errcheck
+          - gosec
+          - gosimple
+          - staticcheck
